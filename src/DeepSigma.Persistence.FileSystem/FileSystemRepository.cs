@@ -17,6 +17,10 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
     private readonly FileSystemOptions _options;
     private readonly AsyncKeyedLocker<string> _locker = new();
 
+    /// <summary>
+    /// Initializes a new instance of the FileSystemRepository class with the specified options. The constructor ensures that the root directory exists, creating it if necessary. If the root path is invalid or inaccessible, an exception will be thrown.
+    /// </summary>
+    /// <param name="options">The file system options to configure the repository.</param>
     public FileSystemRepository(FileSystemOptions options)
     {
         _options = options;
@@ -89,6 +93,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
     }
 
     // ── IRepository<TValue> ──────────────────────────────────────────────
+    /// <inheritdoc/>
 
     public async Task<TValue?> GetAsync(string key, CancellationToken ct = default)
     {
@@ -97,6 +102,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
         return e is null || e.IsExpired() ? default : e.Value;
     }
 
+    /// <inheritdoc/>
     public async Task SetAsync(string key, TValue value, SetOptions? options = null, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -116,6 +122,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
         await WriteEnvelopeAsync(path, envelope, ct);
     }
 
+    /// <inheritdoc/>
     public async Task<bool> DeleteAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -142,6 +149,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
         catch (IOException) { /* missing or in-use; nothing to do */ }
     }
 
+    /// <inheritdoc/>
     public async Task<bool> ExistsAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -154,6 +162,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
     // still throw SerializationException so the caller is told about the problem.
 
 #pragma warning disable CS1998
+    /// <inheritdoc/>
     public async IAsyncEnumerable<string> ListKeysAsync(
         string? prefix = null,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -170,6 +179,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
         }
     }
 
+    /// <inheritdoc/>
     public async IAsyncEnumerable<KeyValuePair<string, TValue>> ListAsync(
         string? prefix = null,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -188,7 +198,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
 #pragma warning restore CS1998
 
     // ── IBulkRepository<TValue> ──────────────────────────────────────────
-
+    /// <inheritdoc/>
     public async Task<IReadOnlyDictionary<string, TValue>> GetManyAsync(
         IEnumerable<string> keys, CancellationToken ct = default)
     {
@@ -205,6 +215,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
         return result;
     }
 
+    /// <inheritdoc/>
     public async Task SetManyAsync(
         IEnumerable<KeyValuePair<string, TValue>> items,
         SetOptions? options = null,
@@ -214,6 +225,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
             await SetAsync(key, value, options, ct);
     }
 
+    /// <inheritdoc/>
     public async Task<int> DeleteManyAsync(IEnumerable<string> keys, CancellationToken ct = default)
     {
         var count = 0;
@@ -223,7 +235,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
     }
 
     // ── IExpiringRepository<TValue> ──────────────────────────────────────
-
+    /// <inheritdoc/>
     public async Task<TimeSpan?> GetTtlAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -233,6 +245,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
         return e.ExpiresAt.Value - DateTimeOffset.UtcNow;
     }
 
+    /// <inheritdoc/>
     public async Task<bool> SetTtlAsync(string key, TimeSpan? ttl, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -250,6 +263,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
         return true;
     }
 
+    /// <inheritdoc/>
     public Task<int> PurgeExpiredAsync(CancellationToken ct = default)
     {
         var count = 0;

@@ -1,7 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Description>File system persistence backend for DeepSigma.Persistance.</Description>
+    <Description>File system persistence backend for DeepSigma.Persistence.</Description>
+
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Title>DeepSigma.Persistence.FileSystem</Title>
+    <Version>1.0.0</Version>
+    <Authors>DeepSigma LLC</Authors>
+    <PackageProjectUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</PackageProjectUrl>
+    <PackageIcon>Assets\DeepSigma.png</PackageIcon>
+    <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="C:\Users\brend\Desktop\GitHub\DeepSigmaRepos\Dotnet.DeepSigma.Persistence\src\DeepSigma.Persistence.Core\Assets\DeepSigma.png" />
@@ -12,5 +21,11 @@
     <PackageReference Include="AsyncKeyedLock" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Assets\DeepSigma.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 </Project>

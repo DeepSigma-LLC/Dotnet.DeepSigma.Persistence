@@ -7,6 +7,10 @@ internal sealed class FileSystemPurgeService : BackgroundService
 {
     private readonly FileSystemOptions _options;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FileSystemPurgeService"/> class with the specified <see cref="FileSystemOptions"/>.
+    /// </summary>
+    /// <param name="options">The <see cref="FileSystemOptions"/> to use for configuring the purge service.</param>
     public FileSystemPurgeService(FileSystemOptions options) => _options = options;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
