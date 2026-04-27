@@ -1,17 +1,21 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/DeepSigma.Persistance.Abstractions/DeepSigma.Persistance.Abstractions.csproj" />
-    <Project Path="src/DeepSigma.Persistance.Core/DeepSigma.Persistance.Core.csproj" />
-    <Project Path="src/DeepSigma.Persistance.FileSystem/DeepSigma.Persistance.FileSystem.csproj" />
-    <Project Path="src/DeepSigma.Persistance.InMemory/DeepSigma.Persistance.InMemory.csproj" />
-    <Project Path="src/DeepSigma.Persistance.Postgres/DeepSigma.Persistance.Postgres.csproj" />
-    <Project Path="src/DeepSigma.Persistance.Sqlite/DeepSigma.Persistance.Sqlite.csproj" />
+    <Project Path="src/DeepSigma.Persistence.Abstractions/DeepSigma.Persistence.Abstractions.csproj" />
+    <Project Path="src/DeepSigma.Persistence.Core/DeepSigma.Persistence.Core.csproj" />
+    <Project Path="src/DeepSigma.Persistence.FileSystem/DeepSigma.Persistence.FileSystem.csproj" />
+    <Project Path="src/DeepSigma.Persistence.InMemory/DeepSigma.Persistence.InMemory.csproj" />
+    <Project Path="src/DeepSigma.Persistence.Postgres/DeepSigma.Persistence.Postgres.csproj" />
+    <Project Path="src/DeepSigma.Persistence.Sqlite/DeepSigma.Persistence.Sqlite.csproj" />
+  </Folder>
+  <Folder Name="/src/Assets/">
+    <File Path="src/DeepSigma.Persistence.Core/Assets/DeepSigma.png" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/DeepSigma.Persistance.Abstractions.Testing/DeepSigma.Persistance.Abstractions.Testing.csproj" />
-    <Project Path="tests/DeepSigma.Persistance.FileSystem.Tests/DeepSigma.Persistance.FileSystem.Tests.csproj" />
-    <Project Path="tests/DeepSigma.Persistance.InMemory.Tests/DeepSigma.Persistance.InMemory.Tests.csproj" />
-    <Project Path="tests/DeepSigma.Persistance.Postgres.Tests/DeepSigma.Persistance.Postgres.Tests.csproj" />
-    <Project Path="tests/DeepSigma.Persistance.Sqlite.Tests/DeepSigma.Persistance.Sqlite.Tests.csproj" />
+    <Project Path="tests/DeepSigma.Persistence.Abstractions.Testing/DeepSigma.Persistence.Abstractions.Testing.csproj" />
+    <Project Path="tests/DeepSigma.Persistence.FileSystem.Tests/DeepSigma.Persistence.FileSystem.Tests.csproj" />
+    <Project Path="tests/DeepSigma.Persistence.InMemory.Tests/DeepSigma.Persistence.InMemory.Tests.csproj" />
+    <Project Path="tests/DeepSigma.Persistence.Postgres.Tests/DeepSigma.Persistence.Postgres.Tests.csproj" />
+    <Project Path="tests/DeepSigma.Persistence.Sqlite.Tests/DeepSigma.Persistence.Sqlite.Tests.csproj" />
   </Folder>
 </Solution>
+

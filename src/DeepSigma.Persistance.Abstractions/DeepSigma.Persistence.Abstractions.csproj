@@ -1,6 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <IsPackable>true</IsPackable>
-    <Description>Persistence abstractions — interfaces, options, and exceptions for DeepSigma.Persistance.</Description>
-  </PropertyGroup>
-</Project>
