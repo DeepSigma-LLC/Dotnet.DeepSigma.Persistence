@@ -209,7 +209,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
 
     // ── IExpiringRepository<TValue> ──────────────────────────────────────
 
-    private sealed class ExpiresAtRow { public DateTime? ExpiresAt { get; init; } }
+    private sealed record ExpiresAtRow(DateTime? ExpiresAt);
 
     /// <inheritdoc/>
     public async Task<TimeSpan?> GetTtlAsync(string key, CancellationToken ct = default)

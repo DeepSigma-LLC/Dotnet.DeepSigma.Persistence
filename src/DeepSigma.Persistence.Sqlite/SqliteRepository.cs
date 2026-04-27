@@ -6,12 +6,21 @@ using Microsoft.Data.Sqlite;
 
 namespace DeepSigma.Persistence.Sqlite;
 
+/// <summary>
+/// SQLite repository implementation. This backend is suitable for single-process scenarios where a lightweight, file-based persistence solution is desired. It supports expiring entries and is designed to be used in applications that do not require concurrent access across multiple processes. For multi-process scenarios, consider using a client-server database like PostgreSQL.
+/// </summary>
+/// <typeparam name="TValue">The type of values stored in the repository.</typeparam>
 public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
 {
     private readonly SqliteOptions _options;
     private readonly IJsonValueSerializer _serializer;
     private readonly string _t; // table name shorthand
 
+    /// <summary>
+    /// Initializes a new instance of the SqliteRepository class with the specified configuration options and JSON serializer.
+    /// </summary>
+    /// <param name="options">The configuration options for the SQLite repository.</param>
+    /// <param name="serializer">The JSON serializer used for serializing and deserializing values.</param>
     public SqliteRepository(SqliteOptions options, IJsonValueSerializer serializer)
     {
         _options = options;
@@ -20,7 +29,9 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         SqliteMigrations.EnsureSchema(options);
     }
 
-    /// <summary>Convenience constructor for testing; uses <see cref="JsonValueSerializer"/>.</summary>
+    /// <summary>
+    /// Convenience constructor for testing; uses <see cref="JsonValueSerializer"/>.
+    /// </summary>
     public SqliteRepository(SqliteOptions options) : this(options, new JsonValueSerializer()) { }
 
     private void ValidateKey(string key) => KeyValidator.Validate(key, _options.MaxKeyLength);
@@ -46,6 +57,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
 
     // ── IRepository<TValue> ──────────────────────────────────────────────
 
+    /// <inheritdoc/>
     public async Task<TValue?> GetAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -56,6 +68,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         return val is null ? default : _serializer.DeserializeFromString<TValue>(val);
     }
 
+    /// <inheritdoc/>
     public async Task SetAsync(string key, TValue value, SetOptions? options = null, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -79,6 +92,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
             }).ConfigureAwait(false);
     }
 
+    /// <inheritdoc/>
     public async Task<bool> DeleteAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -89,6 +103,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         return rows > 0;
     }
 
+    /// <inheritdoc/>
     public async Task<bool> ExistsAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -99,6 +114,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         return count > 0;
     }
 
+    /// <inheritdoc/>
     public async IAsyncEnumerable<string> ListKeysAsync(
         string? prefix = null,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -116,6 +132,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         }
     }
 
+    /// <inheritdoc/>
     public async IAsyncEnumerable<KeyValuePair<string, TValue>> ListAsync(
         string? prefix = null,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -134,7 +151,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
     }
 
     // ── IBulkRepository<TValue> ──────────────────────────────────────────
-
+    /// <inheritdoc/>
     public async Task<IReadOnlyDictionary<string, TValue>> GetManyAsync(
         IEnumerable<string> keys, CancellationToken ct = default)
     {
@@ -151,6 +168,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         return result;
     }
 
+    /// <inheritdoc/>
     public async Task SetManyAsync(
         IEnumerable<KeyValuePair<string, TValue>> items,
         SetOptions? options = null,
@@ -181,6 +199,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         }
     }
 
+    /// <inheritdoc/>
     public async Task<int> DeleteManyAsync(IEnumerable<string> keys, CancellationToken ct = default)
     {
         var total = 0;
@@ -198,10 +217,11 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
 
     // Used by GetTtlAsync. Defined as a class (not a value tuple) so Dapper's column-to-property
     // mapping is robust across versions and so `null` distinguishes "no row" from "no expiry."
-    private sealed class ExpiresAtRow { public string? ExpiresAt { get; init; } }
+    private sealed record ExpiresAtRow(string? ExpiresAt);
 
     private const string SqliteTimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
 
+    /// <inheritdoc/>
     public async Task<TimeSpan?> GetTtlAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -225,6 +245,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         return expiry - DateTimeOffset.UtcNow;
     }
 
+    /// <inheritdoc/>
     public async Task<bool> SetTtlAsync(string key, TimeSpan? ttl, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -240,6 +261,7 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         return rows > 0;
     }
 
+    /// <inheritdoc/>
     public async Task<int> PurgeExpiredAsync(CancellationToken ct = default)
     {
         using var conn = CreateConnection();
