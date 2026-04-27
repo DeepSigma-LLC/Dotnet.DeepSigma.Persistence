@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>File system persistence backend for DeepSigma.Persistance.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DeepSigma.Persistance.Abstractions\DeepSigma.Persistance.Abstractions.csproj" />
+    <ProjectReference Include="..\DeepSigma.Persistance.Core\DeepSigma.Persistance.Core.csproj" />
+    <PackageReference Include="AsyncKeyedLock" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+</Project>

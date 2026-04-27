@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet new *)",
+      "Bash(dotnet sln *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(docker info *)",
+      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "PowerShell(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(git mv *)",
+      "Bash(mv src/DeepSigma.Persistance.Abstractions/IValueSerializer.cs src/DeepSigma.Persistance.Abstractions/IJsonValueSerializer.cs)"
+    ]
+  }
+}
