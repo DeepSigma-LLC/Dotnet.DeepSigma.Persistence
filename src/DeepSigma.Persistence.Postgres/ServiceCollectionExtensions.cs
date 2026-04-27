@@ -5,8 +5,23 @@ using Npgsql;
 
 namespace DeepSigma.Persistence.Postgres;
 
+/// <summary>
+/// Extension methods for registering Postgres persistence services in an <see cref="IServiceCollection"/>.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Adds PostgreSQL-based persistence services and configuration to the specified service collection.
+    /// </summary>
+    /// <remarks>
+    /// This method registers the required services for using PostgreSQL as a persistence provider,
+    /// including connection configuration and repository implementation. If background purging is enabled in the
+    /// options, a hosted purge service is also registered. Call this method during application startup to enable
+    /// PostgreSQL persistence features.
+    /// </remarks>
+    /// <param name="services">The service collection to which the persistence services will be added. Cannot be null.</param>
+    /// <param name="configure">A delegate to configure the PostgreSQL persistence options. Cannot be null.</param>
+    /// <returns>The same service collection instance, enabling method chaining.</returns>
     public static IServiceCollection AddPostgresPersistence(
         this IServiceCollection services,
         Action<PostgresOptions> configure)

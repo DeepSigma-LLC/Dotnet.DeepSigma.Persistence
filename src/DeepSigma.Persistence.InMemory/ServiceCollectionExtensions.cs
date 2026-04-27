@@ -4,6 +4,9 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace DeepSigma.Persistence.InMemory;
 
+/// <summary>
+/// Extension methods for registering InMemory persistence services in an <see cref="IServiceCollection"/>.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>

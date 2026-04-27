@@ -5,6 +5,13 @@ using Npgsql;
 
 namespace DeepSigma.Persistence.Postgres;
 
+/// <summary>
+/// PostgreSQL repository implementation. This backend is designed for production use and supports concurrent access across multiple processes. 
+/// It uses a single table to store key-value pairs, with optional expiration times. 
+/// The repository ensures that expired entries are not returned in queries, and provides methods for managing TTL and purging expired entries.
+/// The JSON serializer is used to convert values to and from their string representation for storage in the database.
+/// </summary>
+/// <typeparam name="TValue"></typeparam>
 public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
 {
     private readonly PostgresOptions _options;
@@ -12,6 +19,17 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
     private readonly NpgsqlDataSource _dataSource;
     private readonly string _t;
 
+    /// <summary>
+    /// Initializes a new instance of the PostgresRepository class using the specified data source, options, and JSON
+    /// value serializer.
+    /// </summary>
+    /// <remarks>This constructor ensures that the required database schema is present by invoking schema
+    /// migrations based on the provided options. All parameters must be valid and non-null to ensure correct repository
+    /// initialization.</remarks>
+    /// <param name="dataSource">The NpgsqlDataSource instance used to manage database connections for PostgreSQL operations. Cannot be null.</param>
+    /// <param name="options">The configuration options that define repository behavior, including the target table name and schema settings.
+    /// Cannot be null.</param>
+    /// <param name="serializer">The serializer used to convert objects to and from JSON for storage and retrieval. Cannot be null.</param>
     public PostgresRepository(NpgsqlDataSource dataSource, PostgresOptions options, IJsonValueSerializer serializer)
     {
         _options = options;
@@ -21,7 +39,9 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
         PostgresMigrations.EnsureSchema(options);
     }
 
-    /// <summary>Convenience constructor for testing; uses <see cref="JsonValueSerializer"/>.</summary>
+    /// <summary>
+    /// Convenience constructor for testing; uses <see cref="JsonValueSerializer"/>.
+    /// </summary>
     public PostgresRepository(NpgsqlDataSource dataSource, PostgresOptions options)
         : this(dataSource, options, new JsonValueSerializer()) { }
 
@@ -32,6 +52,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
 
     // ── IRepository<TValue> ──────────────────────────────────────────────
 
+    /// <inheritdoc/>
     public async Task<TValue?> GetAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -42,6 +63,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
         return val is null ? default : _serializer.DeserializeFromString<TValue>(val);
     }
 
+    /// <inheritdoc/>
     public async Task SetAsync(string key, TValue value, SetOptions? options = null, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -64,6 +86,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
             }).ConfigureAwait(false);
     }
 
+    /// <inheritdoc/>
     public async Task<bool> DeleteAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -74,6 +97,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
         return rows > 0;
     }
 
+    /// <inheritdoc/>
     public async Task<bool> ExistsAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -84,6 +108,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
         return count > 0;
     }
 
+    /// <inheritdoc/>
     public async IAsyncEnumerable<string> ListKeysAsync(
         string? prefix = null,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -91,14 +116,17 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
         var (where, prefixValue) = SqlPrefix.Build(prefix);
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var cmd = conn.CreateCommand();
+
         cmd.CommandText = $"SELECT key FROM {_t} WHERE {LiveWhere}{where} ORDER BY key";
         if (prefixValue is not null)
             cmd.Parameters.AddWithValue("Prefix", prefixValue);
+
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
             yield return reader.GetString(0);
     }
 
+    /// <inheritdoc/>
     public async IAsyncEnumerable<KeyValuePair<string, TValue>> ListAsync(
         string? prefix = null,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -109,6 +137,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
         cmd.CommandText = $"SELECT key, value::text FROM {_t} WHERE {LiveWhere}{where} ORDER BY key";
         if (prefixValue is not null)
             cmd.Parameters.AddWithValue("Prefix", prefixValue);
+
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
             yield return new KeyValuePair<string, TValue>(reader.GetString(0), _serializer.DeserializeFromString<TValue>(reader.GetString(1))!);
@@ -116,6 +145,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
 
     // ── IBulkRepository<TValue> ──────────────────────────────────────────
 
+    /// <inheritdoc/>
     public async Task<IReadOnlyDictionary<string, TValue>> GetManyAsync(
         IEnumerable<string> keys, CancellationToken ct = default)
     {
@@ -132,6 +162,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
         return result;
     }
 
+    /// <inheritdoc/>
     public async Task SetManyAsync(
         IEnumerable<KeyValuePair<string, TValue>> items,
         SetOptions? options = null,
@@ -162,6 +193,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
         }
     }
 
+    /// <inheritdoc/>
     public async Task<int> DeleteManyAsync(IEnumerable<string> keys, CancellationToken ct = default)
     {
         var total = 0;
@@ -179,6 +211,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
 
     private sealed class ExpiresAtRow { public DateTime? ExpiresAt { get; init; } }
 
+    /// <inheritdoc/>
     public async Task<TimeSpan?> GetTtlAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -192,6 +225,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
         return new DateTimeOffset(row.ExpiresAt.Value, TimeSpan.Zero) - DateTimeOffset.UtcNow;
     }
 
+    /// <inheritdoc/>
     public async Task<bool> SetTtlAsync(string key, TimeSpan? ttl, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -207,6 +241,7 @@ public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
         return rows > 0;
     }
 
+    /// <inheritdoc/>
     public async Task<int> PurgeExpiredAsync(CancellationToken ct = default)
     {
         await using var conn = await _dataSource.OpenConnectionAsync(ct);

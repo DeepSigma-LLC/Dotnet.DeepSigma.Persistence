@@ -4,6 +4,10 @@ using DeepSigma.Persistence.Core;
 
 namespace DeepSigma.Persistence.InMemory;
 
+/// <summary>
+/// In-memory repository implementation. This backend is designed for testing and single-process scenarios where data does not need to persist across application restarts. It is not suitable for production use or concurrent access across multiple processes.
+/// </summary>
+/// <typeparam name="TValue">The type of values stored in the repository.</typeparam>
 public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
 {
     private readonly InMemoryStore<TValue> _store;
@@ -11,14 +15,18 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
 
     private ConcurrentDictionary<string, InMemoryStore<TValue>.Entry> Data => _store.Data;
 
-    /// <summary>Convenience constructor for testing and direct instantiation.</summary>
+    /// <summary>
+    /// Convenience constructor for testing and direct instantiation.
+    /// </summary>
     public InMemoryRepository(InMemoryOptions? options = null)
     {
         _options = options ?? new InMemoryOptions();
         _store = new InMemoryStore<TValue>(_options);
     }
 
-    /// <summary>DI constructor — store is injected as a singleton so all interface registrations share data.</summary>
+    /// <summary>
+    /// DI constructor — store is injected as a singleton so all interface registrations share data.
+    /// </summary>
     public InMemoryRepository(InMemoryStore<TValue> store, InMemoryOptions options)
     {
         _store = store;
@@ -29,6 +37,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
 
     // ── IRepository<TValue> ──────────────────────────────────────────────
 
+    /// <inheritdoc/>
     public Task<TValue?> GetAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -38,6 +47,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
         return Task.FromResult<TValue?>(default);
     }
 
+    /// <inheritdoc/>
     public Task SetAsync(string key, TValue value, SetOptions? options = null, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -45,6 +55,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc/>
     public Task<bool> DeleteAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -55,6 +66,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
         return Task.FromResult(!removed.IsExpired(now));
     }
 
+    /// <inheritdoc/>
     public Task<bool> ExistsAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -63,6 +75,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
     }
 
 #pragma warning disable CS1998 // Synchronous iteration presented as IAsyncEnumerable for interface compliance
+    /// <inheritdoc/>
     public async IAsyncEnumerable<string> ListKeysAsync(
         string? prefix = null,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -77,6 +90,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
         }
     }
 
+    /// <inheritdoc/>
     public async IAsyncEnumerable<KeyValuePair<string, TValue>> ListAsync(
         string? prefix = null,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -93,7 +107,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
 #pragma warning restore CS1998
 
     // ── IBulkRepository<TValue> ──────────────────────────────────────────
-
+    /// <inheritdoc/>
     public Task<IReadOnlyDictionary<string, TValue>> GetManyAsync(
         IEnumerable<string> keys, CancellationToken ct = default)
     {
@@ -108,6 +122,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
         return Task.FromResult<IReadOnlyDictionary<string, TValue>>(result);
     }
 
+    /// <inheritdoc/>
     public Task SetManyAsync(
         IEnumerable<KeyValuePair<string, TValue>> items,
         SetOptions? options = null,
@@ -122,6 +137,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc/>
     public Task<int> DeleteManyAsync(IEnumerable<string> keys, CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
@@ -137,7 +153,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
     }
 
     // ── IExpiringRepository<TValue> ──────────────────────────────────────
-
+    /// <inheritdoc/>
     public Task<TimeSpan?> GetTtlAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -149,6 +165,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
             : null);
     }
 
+    /// <inheritdoc/>
     public Task<bool> SetTtlAsync(string key, TimeSpan? ttl, CancellationToken ct = default)
     {
         ValidateKey(key);
@@ -166,6 +183,7 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
         }
     }
 
+    /// <inheritdoc/>
     public Task<int> PurgeExpiredAsync(CancellationToken ct = default)
         => Task.FromResult(_store.PurgeExpired());
 }

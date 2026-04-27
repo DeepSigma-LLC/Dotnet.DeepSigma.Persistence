@@ -1,7 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <Description>In-memory persistence backend for DeepSigma.Persistance.</Description>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>DeepSigma.Persistence.InMemory</Title>
+    <Version>1.0.0</Version>
+    <Authors>DeepSigma LLC</Authors>
+    <Copyright />
+    <PackageProjectUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</PackageProjectUrl>
+    <PackageIcon>Assets\DeepSigma.png</PackageIcon>
+    <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="C:\Users\brend\Desktop\GitHub\DeepSigmaRepos\Dotnet.DeepSigma.Persistence\src\DeepSigma.Persistence.Core\Assets\DeepSigma.png" />
@@ -11,5 +20,11 @@
     <ProjectReference Include="..\DeepSigma.Persistence.Core\DeepSigma.Persistence.Core.csproj" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Assets\DeepSigma.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 </Project>
