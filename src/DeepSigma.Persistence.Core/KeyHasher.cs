@@ -3,6 +3,14 @@ using System.Text;
 
 namespace DeepSigma.Persistence.Core;
 
+/// <summary>
+/// Provides utility methods for generating SHA-256 hashes and shard directory names from string keys.
+/// </summary>
+/// <remarks>
+/// This class is static and cannot be instantiated. It is intended for use in scenarios where
+/// consistent, case-insensitive hash values and shard directory names are required, such as file system storage or
+/// distributed caching.
+/// </remarks>
 public static class KeyHasher
 {
     /// <summary>Returns the lowercase SHA-256 hex digest of the UTF-8 encoded key.</summary>

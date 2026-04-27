@@ -2,9 +2,27 @@
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <Description>Core types — envelope, serializer, and key utilities for DeepSigma.Persistance.</Description>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>DeepSigma.Persistence.Abstractions</Title>
+    <Version>1.0.0</Version>
+    <Authors>DeepSigma LLC</Authors>
+    <PackageProjectUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence.git</RepositoryUrl>
+    <PackageIcon>Assets\DeepSigma.png</PackageIcon>
   </PropertyGroup>
-  <ItemGroup>
+
+
+	  <ItemGroup>
     <ProjectReference Include="..\DeepSigma.Persistence.Abstractions\DeepSigma.Persistence.Abstractions.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>
+
+
+	  <ItemGroup>
+	    <None Update="Assets\DeepSigma.png">
+	      <Pack>True</Pack>
+	      <PackagePath>\</PackagePath>
+	    </None>
+	  </ItemGroup>
 </Project>

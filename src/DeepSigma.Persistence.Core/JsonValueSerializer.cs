@@ -15,13 +15,21 @@ public sealed class JsonValueSerializer : IJsonValueSerializer
 {
     private readonly JsonSerializerOptions _options;
 
+    /// <summary>
+    /// Initializes a new instance of the JsonValueSerializer class with default settings.
+    /// </summary>
     public JsonValueSerializer() : this(null) { }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonValueSerializer"/> class with the specified <see cref="JsonSerializerOptions"/>.
+    /// </summary>
+    /// <param name="options"></param>
     public JsonValueSerializer(JsonSerializerOptions? options)
     {
         _options = options ?? JsonSerializerOptions.Default;
     }
 
+    /// <inheritdoc/>
     public byte[] Serialize<T>(T value)
     {
         try
@@ -34,6 +42,7 @@ public sealed class JsonValueSerializer : IJsonValueSerializer
         }
     }
 
+    /// <inheritdoc/>
     public T? Deserialize<T>(byte[] data)
     {
         try

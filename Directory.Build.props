@@ -10,5 +10,6 @@
     <Authors>DeepSigma</Authors>
     <Copyright>Copyright © DeepSigma 2026</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>DeepSigma.png</PackageIcon>
   </PropertyGroup>
 </Project>

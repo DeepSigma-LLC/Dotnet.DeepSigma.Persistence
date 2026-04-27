@@ -24,9 +24,13 @@ namespace DeepSigma.Persistence;
 /// </remarks>
 public interface IJsonValueSerializer
 {
-    /// <summary>Serializes <paramref name="value"/> to a UTF-8 JSON byte sequence.</summary>
+    /// <summary>
+    /// Serializes <paramref name="value"/> to a UTF-8 JSON byte sequence.
+    /// </summary>
     byte[] Serialize<T>(T value);
 
-    /// <summary>Deserializes <paramref name="data"/> (UTF-8 JSON) back into <typeparamref name="T"/>.</summary>
+    /// <summary>
+    /// Deserializes <paramref name="data"/> (UTF-8 JSON) back into <typeparamref name="T"/>.
+    /// </summary>
     T? Deserialize<T>(byte[] data);
 }

@@ -4,6 +4,9 @@
     <Description>In-memory persistence backend for DeepSigma.Persistance.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="C:\Users\brend\Desktop\GitHub\DeepSigmaRepos\Dotnet.DeepSigma.Persistence\src\DeepSigma.Persistence.Core\Assets\DeepSigma.png" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\DeepSigma.Persistence.Abstractions\DeepSigma.Persistence.Abstractions.csproj" />
     <ProjectReference Include="..\DeepSigma.Persistence.Core\DeepSigma.Persistence.Core.csproj" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />

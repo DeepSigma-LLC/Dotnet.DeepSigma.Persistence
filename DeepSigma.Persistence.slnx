@@ -7,9 +7,6 @@
     <Project Path="src/DeepSigma.Persistence.Postgres/DeepSigma.Persistence.Postgres.csproj" />
     <Project Path="src/DeepSigma.Persistence.Sqlite/DeepSigma.Persistence.Sqlite.csproj" />
   </Folder>
-  <Folder Name="/src/Assets/">
-    <File Path="src/DeepSigma.Persistence.Core/Assets/DeepSigma.png" />
-  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DeepSigma.Persistence.Abstractions.Testing/DeepSigma.Persistence.Abstractions.Testing.csproj" />
     <Project Path="tests/DeepSigma.Persistence.FileSystem.Tests/DeepSigma.Persistence.FileSystem.Tests.csproj" />

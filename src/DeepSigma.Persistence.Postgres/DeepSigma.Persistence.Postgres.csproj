@@ -1,10 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <Description>PostgreSQL persistence backend for DeepSigma.Persistance.</Description>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Migrations\*.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="C:\Users\brend\Desktop\GitHub\DeepSigmaRepos\Dotnet.DeepSigma.Persistence\src\DeepSigma.Persistence.Core\Assets\DeepSigma.png" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DeepSigma.Persistence.Abstractions\DeepSigma.Persistence.Abstractions.csproj" />
