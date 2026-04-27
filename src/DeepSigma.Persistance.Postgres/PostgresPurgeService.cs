@@ -2,7 +2,7 @@ using Dapper;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
 
-namespace DeepSigma.Persistance.Postgres;
+namespace DeepSigma.Persistence.Postgres;
 
 internal sealed class PostgresPurgeService : BackgroundService
 {

@@ -1,9 +1,9 @@
-using DeepSigma.Persistance.Core;
+using DeepSigma.Persistence.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 
-namespace DeepSigma.Persistance.Postgres;
+namespace DeepSigma.Persistence.Postgres;
 
 public static class ServiceCollectionExtensions
 {

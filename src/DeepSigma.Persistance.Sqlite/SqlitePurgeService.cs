@@ -2,7 +2,7 @@ using Dapper;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Hosting;
 
-namespace DeepSigma.Persistance.Sqlite;
+namespace DeepSigma.Persistence.Sqlite;
 
 internal sealed class SqlitePurgeService : BackgroundService
 {

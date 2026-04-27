@@ -1,9 +1,9 @@
 using System.Runtime.CompilerServices;
 using Dapper;
-using DeepSigma.Persistance.Core;
+using DeepSigma.Persistence.Core;
 using Npgsql;
 
-namespace DeepSigma.Persistance.Postgres;
+namespace DeepSigma.Persistence.Postgres;
 
 public sealed class PostgresRepository<TValue> : IExpiringRepository<TValue>
 {

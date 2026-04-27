@@ -1,4 +1,4 @@
-namespace DeepSigma.Persistance.Core;
+namespace DeepSigma.Persistence.Core;
 
 public sealed record Envelope<TValue>
 {

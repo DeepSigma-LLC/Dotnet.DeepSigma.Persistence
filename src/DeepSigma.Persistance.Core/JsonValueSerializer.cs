@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace DeepSigma.Persistance.Core;
+namespace DeepSigma.Persistence.Core;
 
 /// <summary>
 /// Default <see cref="IJsonValueSerializer"/> implementation, backed by <see cref="JsonSerializer"/>.

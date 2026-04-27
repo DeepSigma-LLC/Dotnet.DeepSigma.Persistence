@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 
-namespace DeepSigma.Persistance.FileSystem;
+namespace DeepSigma.Persistence.FileSystem;
 
 internal sealed class FileSystemPurgeService : BackgroundService
 {

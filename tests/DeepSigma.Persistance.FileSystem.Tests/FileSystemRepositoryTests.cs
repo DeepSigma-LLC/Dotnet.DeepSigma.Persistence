@@ -1,7 +1,7 @@
-using DeepSigma.Persistance.FileSystem;
-using DeepSigma.Persistance.Testing;
+using DeepSigma.Persistence.FileSystem;
+using DeepSigma.Persistence.Testing;
 
-namespace DeepSigma.Persistance.FileSystem.Tests;
+namespace DeepSigma.Persistence.FileSystem.Tests;
 
 public sealed class FileSystemRepositoryTests
     : ExpiringRepositoryContractTests<FileSystemRepository<string>>, IDisposable

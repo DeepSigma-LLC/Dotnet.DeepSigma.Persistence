@@ -1,4 +1,4 @@
-namespace DeepSigma.Persistance.Sqlite;
+namespace DeepSigma.Persistence.Sqlite;
 
 public sealed class SqliteOptions : PersistenceOptions
 {

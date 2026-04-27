@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace DeepSigma.Persistance.InMemory;
+namespace DeepSigma.Persistence.InMemory;
 
 /// <summary>
 /// Holds the backing store for <see cref="InMemoryRepository{TValue}"/>.

@@ -1,7 +1,7 @@
-using DeepSigma.Persistance.InMemory;
-using DeepSigma.Persistance.Testing;
+using DeepSigma.Persistence.InMemory;
+using DeepSigma.Persistence.Testing;
 
-namespace DeepSigma.Persistance.InMemory.Tests;
+namespace DeepSigma.Persistence.InMemory.Tests;
 
 /// <summary>
 /// Runs the full contract suite against InMemoryRepository.

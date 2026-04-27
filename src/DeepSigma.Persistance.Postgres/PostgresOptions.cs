@@ -1,4 +1,4 @@
-namespace DeepSigma.Persistance.Postgres;
+namespace DeepSigma.Persistence.Postgres;
 
 public sealed class PostgresOptions : PersistenceOptions
 {

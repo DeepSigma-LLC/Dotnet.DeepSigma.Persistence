@@ -1,7 +1,7 @@
-using DeepSigma.Persistance.Sqlite;
-using DeepSigma.Persistance.Testing;
+using DeepSigma.Persistence.Sqlite;
+using DeepSigma.Persistence.Testing;
 
-namespace DeepSigma.Persistance.Sqlite.Tests;
+namespace DeepSigma.Persistence.Sqlite.Tests;
 
 /// <summary>
 /// Runs the full contract suite against SqliteRepository.

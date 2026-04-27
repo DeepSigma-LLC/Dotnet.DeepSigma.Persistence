@@ -1,10 +1,10 @@
-using DeepSigma.Persistance.Postgres;
-using DeepSigma.Persistance.Testing;
+using DeepSigma.Persistence.Postgres;
+using DeepSigma.Persistence.Testing;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
 
-namespace DeepSigma.Persistance.Postgres.Tests;
+namespace DeepSigma.Persistence.Postgres.Tests;
 
 public sealed class PostgresRepositoryTests
     : ExpiringRepositoryContractTests<PostgresRepository<string>>, IAsyncLifetime

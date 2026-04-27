@@ -1,4 +1,4 @@
-namespace DeepSigma.Persistance;
+namespace DeepSigma.Persistence;
 
 /// <summary>
 /// Serializes values to and from a JSON-compatible byte sequence.
@@ -12,7 +12,7 @@ namespace DeepSigma.Persistance;
 /// </para>
 /// <para>
 /// To customize JSON behaviour (camelCase, custom converters, source-generated metadata for
-/// AOT/trimming), construct <see cref="DeepSigma.Persistance.Core.JsonValueSerializer"/>
+/// AOT/trimming), construct <see cref="DeepSigma.Persistence.Core.JsonValueSerializer"/>
 /// with a configured <c>JsonSerializerOptions</c> and register that instance before calling
 /// <c>AddSqlitePersistence</c> / <c>AddPostgresPersistence</c>.
 /// </para>

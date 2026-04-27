@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace DeepSigma.Persistance.Core;
+namespace DeepSigma.Persistence.Core;
 
 /// <summary>
 /// Convenience helpers for SQL backends that store the serializer's UTF-8 byte output as TEXT.

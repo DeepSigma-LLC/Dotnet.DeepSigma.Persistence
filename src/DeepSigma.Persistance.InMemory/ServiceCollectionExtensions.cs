@@ -1,8 +1,8 @@
-using DeepSigma.Persistance.Core;
+using DeepSigma.Persistence.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace DeepSigma.Persistance.InMemory;
+namespace DeepSigma.Persistence.InMemory;
 
 public static class ServiceCollectionExtensions
 {

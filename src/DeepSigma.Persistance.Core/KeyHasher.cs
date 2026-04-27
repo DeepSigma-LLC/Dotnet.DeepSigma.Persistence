@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace DeepSigma.Persistance.Core;
+namespace DeepSigma.Persistence.Core;
 
 public static class KeyHasher
 {

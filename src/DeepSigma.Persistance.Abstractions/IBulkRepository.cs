@@ -1,4 +1,4 @@
-namespace DeepSigma.Persistance;
+namespace DeepSigma.Persistence;
 
 public interface IBulkRepository<TValue> : IRepository<TValue>
 {

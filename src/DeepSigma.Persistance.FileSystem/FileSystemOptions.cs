@@ -1,4 +1,4 @@
-namespace DeepSigma.Persistance.FileSystem;
+namespace DeepSigma.Persistence.FileSystem;
 
 /// <summary>Single-process only. Not designed for concurrent access across multiple processes.</summary>
 public sealed class FileSystemOptions : PersistenceOptions

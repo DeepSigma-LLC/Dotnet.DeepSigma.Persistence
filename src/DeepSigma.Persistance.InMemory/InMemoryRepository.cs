@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
-using DeepSigma.Persistance.Core;
+using DeepSigma.Persistence.Core;
 
-namespace DeepSigma.Persistance.InMemory;
+namespace DeepSigma.Persistence.InMemory;
 
 public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
 {

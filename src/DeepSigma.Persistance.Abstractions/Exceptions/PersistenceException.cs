@@ -1,4 +1,4 @@
-namespace DeepSigma.Persistance;
+namespace DeepSigma.Persistence;
 
 public class PersistenceException : Exception
 {

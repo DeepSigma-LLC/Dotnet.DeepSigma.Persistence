@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Dapper;
-using DeepSigma.Persistance.Core;
+using DeepSigma.Persistence.Core;
 using Microsoft.Data.Sqlite;
 
-namespace DeepSigma.Persistance.Sqlite;
+namespace DeepSigma.Persistence.Sqlite;
 
 public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
 {

@@ -2,7 +2,7 @@ using System.Text;
 using Dapper;
 using Npgsql;
 
-namespace DeepSigma.Persistance.Postgres;
+namespace DeepSigma.Persistence.Postgres;
 
 internal static class PostgresMigrations
 {

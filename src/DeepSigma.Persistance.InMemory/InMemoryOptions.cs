@@ -1,4 +1,4 @@
-namespace DeepSigma.Persistance.InMemory;
+namespace DeepSigma.Persistence.InMemory;
 
 public sealed class InMemoryOptions : PersistenceOptions
 {

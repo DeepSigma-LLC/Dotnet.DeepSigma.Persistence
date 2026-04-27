@@ -2,7 +2,7 @@ using System.Text;
 using Dapper;
 using Microsoft.Data.Sqlite;
 
-namespace DeepSigma.Persistance.Sqlite;
+namespace DeepSigma.Persistence.Sqlite;
 
 internal static class SqliteMigrations
 {

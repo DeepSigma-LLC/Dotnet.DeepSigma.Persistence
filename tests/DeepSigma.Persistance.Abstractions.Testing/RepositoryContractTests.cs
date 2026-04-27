@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace DeepSigma.Persistance.Testing;
+namespace DeepSigma.Persistence.Testing;
 
 /// <summary>
 /// Abstract contract suite for <see cref="IRepository{TValue}"/>.

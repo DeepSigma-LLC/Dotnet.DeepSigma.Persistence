@@ -1,4 +1,4 @@
-namespace DeepSigma.Persistance.Core;
+namespace DeepSigma.Persistence.Core;
 
 /// <summary>
 /// Helpers for building safe LIKE-prefix clauses against SQL backends.

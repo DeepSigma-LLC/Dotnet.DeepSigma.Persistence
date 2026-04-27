@@ -1,12 +1,12 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using AsyncKeyedLock;
-using DeepSigma.Persistance.Core;
+using DeepSigma.Persistence.Core;
 
 // Alias to disambiguate from System.Runtime.Serialization.SerializationException.
-using SerializationException = DeepSigma.Persistance.SerializationException;
+using SerializationException = DeepSigma.Persistence.SerializationException;
 
-namespace DeepSigma.Persistance.FileSystem;
+namespace DeepSigma.Persistence.FileSystem;
 
 /// <summary>
 /// File-per-key persistence backend. Single-process only — no cross-process file locking.
