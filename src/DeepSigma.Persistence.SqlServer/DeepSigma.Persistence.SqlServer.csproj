@@ -5,13 +5,13 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>DeepSigma.Persistence.SqlServer</Title>
-    <Version>1.1.0</Version>
+    <Version>1.3.0</Version>
     <Authors>DeepSigma LLC</Authors>
     <Copyright />
     <PackageProjectUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</PackageProjectUrl>
     <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</RepositoryUrl>
-    <!-- PackageIcon + PackageReadmeFile come from root Directory.Build.props (DeepSigma.png at root,
-         README.md at root). src/Directory.Build.props handles the icon include for IsPackable projects. -->
+	<PackageIcon>DeepSigma.png</PackageIcon>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Migrations\*.sql" />

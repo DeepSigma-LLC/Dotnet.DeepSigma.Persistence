@@ -14,8 +14,14 @@ public static class SqlPrefix
     /// Returns the SQL fragment to append to a WHERE clause and the bound parameter value.
     /// Both are null/empty when prefix is null. The fragment uses parameter name "@Prefix".
     /// </summary>
-    public static (string Clause, string? PrefixValue) Build(string? prefix) =>
+    /// <param name="prefix">The user-supplied prefix to filter by, or null for no filtering.</param>
+    /// <param name="keyColumn">
+    /// The column name to filter on, formatted with the target backend's identifier quoting if needed.
+    /// Defaults to <c>"key"</c> — works for Postgres (case-folded lowercase) and SQLite. Pass
+    /// <c>"[key]"</c> for SQL Server, where <c>KEY</c> is a reserved keyword.
+    /// </param>
+    public static (string Clause, string? PrefixValue) Build(string? prefix, string keyColumn = "key") =>
         prefix is null
             ? ("", null)
-            : (" AND key LIKE @Prefix ESCAPE '\\'", Escape(prefix) + "%");
+            : ($" AND {keyColumn} LIKE @Prefix ESCAPE '\\'", Escape(prefix) + "%");
 }

@@ -1,16 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <Description>PostgreSQL persistence backend for DeepSigma.Persistence.</Description>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>DeepSigma.Persistence.Postgres</Title>
-    <Version>1.1.0</Version>
+    <Version>1.3.0</Version>
     <Authors>DeepSigma LLC</Authors>
     <Copyright />
     <PackageProjectUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</PackageProjectUrl>
     <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</RepositoryUrl>
-    <PackageIcon>Assets\DeepSigma.png</PackageIcon>
+    <PackageIcon>DeepSigma.png</PackageIcon>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
@@ -22,11 +22,5 @@
     <PackageReference Include="DeepSigma.DataAccess.Postgres" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="Assets\DeepSigma.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
   </ItemGroup>
 </Project>

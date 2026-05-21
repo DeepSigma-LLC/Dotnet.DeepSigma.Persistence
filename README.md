@@ -2,7 +2,7 @@
 
 A swappable .NET 10 key-value persistence library. Choose your backend at registration time — your application code stays the same.
 
-Four backends are provided out of the box:
+Five backends are provided out of the box:
 
 | Package | Backend | Best for |
 |---|---|---|
@@ -10,8 +10,9 @@ Four backends are provided out of the box:
 | `DeepSigma.Persistence.FileSystem` | One file per key (JSON) | Single-process, low-volume, human-readable data |
 | `DeepSigma.Persistence.Sqlite` | SQLite via `DeepSigma.DataAccess.Sqlite` | Embedded apps, desktop tools, edge nodes |
 | `DeepSigma.Persistence.Postgres` | PostgreSQL via `DeepSigma.DataAccess.Postgres` | Production services, shared state, high throughput |
+| `DeepSigma.Persistence.SqlServer` | Microsoft SQL Server via `DeepSigma.DataAccess.SqlServer` | Microsoft-stack production services; integrates with Windows-Integrated and Azure AD auth |
 
-The SQL backends sit on top of [`DeepSigma.DataAccess.RelationalDatabase`](https://github.com/DeepSigma-LLC) (a Dapper-backed CRUD API + `MigrationRunner`). The library does not depend on Dapper, `Microsoft.Data.Sqlite`, or `Npgsql` directly — those come transitively through the provider packages.
+The SQL backends sit on top of [`DeepSigma.DataAccess.RelationalDatabase`](https://github.com/DeepSigma-LLC) (a Dapper-backed CRUD API + `MigrationRunner`). The library does not depend on Dapper, `Microsoft.Data.Sqlite`, `Npgsql`, or `Microsoft.Data.SqlClient` directly — those come transitively through the provider packages.
 
 ---
 
@@ -23,6 +24,7 @@ The SQL backends sit on top of [`DeepSigma.DataAccess.RelationalDatabase`](https
   - [FileSystem](#filesystem)
   - [SQLite](#sqlite)
   - [Postgres](#postgres)
+  - [SQL Server](#sql-server)
   - [Direct construction (tests and one-off scripts)](#direct-construction-tests-and-one-off-scripts)
 - [Common Operations](#common-operations)
   - [Basic CRUD](#basic-crud)
@@ -163,6 +165,53 @@ Values are stored as `JSONB`. `ListKeysAsync` and `ListAsync` stream results row
 
 ---
 
+### SQL Server
+
+```bash
+dotnet add package DeepSigma.Persistence.SqlServer
+```
+
+```csharp
+builder.Services.AddSqlServerPersistence(o =>
+{
+    o.ConnectionString = "Server=localhost;Database=mydb;User Id=app;Password=secret;TrustServerCertificate=true";
+    o.Schema           = "dbo";                  // default
+    o.TableName        = "persistence_kv";       // default
+    o.AutoMigrate      = true;                   // default
+    o.BackgroundPurge  = true;
+    o.PurgeInterval    = TimeSpan.FromMinutes(15);
+});
+```
+
+Values are stored as `NVARCHAR(MAX)`, timestamps as `DATETIMEOFFSET`. The table is created in the configured schema (defaults to `dbo`); the `_migrations` tracking table is always in `dbo`. The upsert path uses `UPDATE … WITH (UPDLOCK, HOLDLOCK) … IF @@ROWCOUNT = 0 INSERT` inside a `BEGIN TRAN … COMMIT TRAN` block with `SET XACT_ABORT ON` — the documented safe pattern for SQL Server concurrent upserts.
+
+`AddSqlServerPersistence` calls `AddDeepSigmaSqlServer(connectionString)` from the [`DeepSigma.DataAccess.SqlServer`](https://github.com/DeepSigma-LLC) package, which registers a `SqlServerConnectionFactory`, a `RelationalDatabaseApi`, a schema service, and a `MigrationRunner`.
+
+> **Key length limit.** SQL Server's clustered-index entry max is 900 bytes; `NVARCHAR(450)` is exactly 900 bytes. `SqlServerOptions` defaults `MaxKeyLength` to **450** rather than the library-wide 512, and the option validator refuses higher values. Override the migration with a `HASHBYTES`-indexed surrogate if you need longer keys.
+
+#### Authentication modes
+
+The library accepts any valid SQL Server connection string. Three common shapes:
+
+```csharp
+// 1. SQL authentication — username + password in the connection string
+o.ConnectionString =
+    "Server=localhost;Database=mydb;User Id=app;Password=secret;TrustServerCertificate=true";
+
+// 2. Windows-Integrated authentication — uses the current OS identity (Kerberos / NTLM)
+o.ConnectionString =
+    "Server=localhost;Database=mydb;Integrated Security=true;TrustServerCertificate=true";
+
+// 3. Azure AD authentication — works against Azure SQL Database. Requires
+//    Microsoft.Data.SqlClient with the Active Directory provider already configured.
+o.ConnectionString =
+    "Server=myserver.database.windows.net;Database=mydb;Authentication=Active Directory Default;Encrypt=true";
+```
+
+`TrustServerCertificate=true` is convenient for local dev / containers but should be **false** (the default) in production with a properly-issued certificate. For Azure AD, the available `Authentication=` values include `Active Directory Default`, `Active Directory Integrated`, `Active Directory Interactive`, `Active Directory Password`, `Active Directory Service Principal`, and `Active Directory Managed Identity` — pick the one that matches your hosting model. See Microsoft's [Microsoft.Data.SqlClient authentication docs](https://learn.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication) for the full matrix.
+
+---
+
 ### Direct construction (tests and one-off scripts)
 
 Every repository exposes a single-argument convenience constructor that takes just its options and builds the rest internally. Use it from tests, throwaway scripts, or anywhere you don't want a DI container:
@@ -185,6 +234,13 @@ var sqlite = new SqliteRepository<string>(new SqliteOptions
 var pg = new PostgresRepository<string>(new PostgresOptions
 {
     ConnectionString = "Host=localhost;Database=mydb;Username=app;Password=secret",
+    AutoMigrate = true,
+});
+
+// SQL Server — same pattern, plus schema-qualified table support
+var mssql = new SqlServerRepository<string>(new SqlServerOptions
+{
+    ConnectionString = "Server=localhost;Database=mydb;User Id=app;Password=secret;TrustServerCertificate=true",
     AutoMigrate = true,
 });
 ```
@@ -323,19 +379,20 @@ await repo.SetAsync("key", value, options: null);
 
 ## Backend Comparison
 
-| Feature | InMemory | FileSystem | SQLite | Postgres |
-|---|---|---|---|---|
-| Persistence | None | File | File | Server |
-| Multi-process safe | — | No | Yes | Yes |
-| Max practical keys | Unlimited | ~50k | Millions | Unlimited |
-| TTL precision | Tick (100 ns) | Tick (100 ns) | Millisecond | Microsecond |
-| Streaming list | Yes | Yes | Yes | Yes (server cursor) |
-| Value storage | Live object | JSON file | JSON text | JSONB |
-| Background purge | Optional | Optional | Optional | Optional |
-| Bulk chunk size | N/A | N/A | 1 000 rows | 1 000 rows |
-| Schema migration | N/A | N/A | Auto / manual | Auto / manual |
-| Concurrent-write safety | `ConcurrentDictionary` | `AsyncKeyedLock` per key | WAL + `busy_timeout` | Row-level locking |
-| Test dependencies | None | Temp dir | Temp `.db` file | Docker |
+| Feature | InMemory | FileSystem | SQLite | Postgres | SQL Server |
+|---|---|---|---|---|---|
+| Persistence | None | File | File | Server | Server |
+| Multi-process safe | — | No | Yes | Yes | Yes |
+| Max practical keys | Unlimited | ~50k | Millions | Unlimited | Unlimited |
+| Max key length | 512 | 512 | 512 | 512 | 450 (PK index limit) |
+| TTL precision | Tick (100 ns) | Tick (100 ns) | Millisecond | Microsecond | 100 ns (`DATETIMEOFFSET`) |
+| Streaming list | Yes | Yes | Yes | Yes (server cursor) | Yes (server cursor) |
+| Value storage | Live object | JSON file | JSON text | JSONB | NVARCHAR(MAX) |
+| Background purge | Optional | Optional | Optional | Optional | Optional |
+| Bulk chunk size | N/A | N/A | 1 000 rows | 1 000 rows | 1 000 rows |
+| Schema migration | N/A | N/A | Auto / manual | Auto / manual | Auto / manual |
+| Concurrent-write safety | `ConcurrentDictionary` | `AsyncKeyedLock` per key | WAL + `busy_timeout` | Row-level locking | UPDLOCK + HOLDLOCK upsert |
+| Test dependencies | None | Temp dir | Temp `.db` file | Docker | Docker |
 
 ---
 
@@ -390,13 +447,21 @@ DeepSigma.Persistence/
 │   │   └── Migrations/
 │   │       └── 001_initial.sql
 │   │
-│   └── DeepSigma.Persistence.Postgres/
-│       ├── PostgresOptions.cs
-│       ├── PostgresSchemaBootstrap.cs   # Migration apply via MigrationRunner
-│       ├── PostgresRepository.cs
+│   ├── DeepSigma.Persistence.Postgres/
+│   │   ├── PostgresOptions.cs
+│   │   ├── PostgresSchemaBootstrap.cs   # Migration apply via MigrationRunner
+│   │   ├── PostgresRepository.cs
+│   │   ├── ServiceCollectionExtensions.cs
+│   │   └── Migrations/
+│   │       └── 001_initial.sql
+│   │
+│   └── DeepSigma.Persistence.SqlServer/
+│       ├── SqlServerOptions.cs              # Schema + TableName + 450-char key cap
+│       ├── SqlServerSchemaBootstrap.cs      # Migration apply via MigrationRunner
+│       ├── SqlServerRepository.cs           # UPDLOCK+HOLDLOCK upsert, bracketed identifiers
 │       ├── ServiceCollectionExtensions.cs
 │       └── Migrations/
-│           └── 001_initial.sql
+│           └── 001_initial.sql              # {Schema}.{TableName}, DATETIMEOFFSET timestamps
 │
 └── tests/
     ├── DeepSigma.Persistence.Abstractions.Testing/
@@ -407,7 +472,8 @@ DeepSigma.Persistence/
     ├── DeepSigma.Persistence.InMemory.Tests/
     ├── DeepSigma.Persistence.FileSystem.Tests/
     ├── DeepSigma.Persistence.Sqlite.Tests/
-    └── DeepSigma.Persistence.Postgres.Tests/   # Requires Docker (Testcontainers)
+    ├── DeepSigma.Persistence.Postgres.Tests/   # Requires Docker (Testcontainers.PostgreSql)
+    └── DeepSigma.Persistence.SqlServer.Tests/  # Requires Docker (Testcontainers.MsSql)
 ```
 
 ---
@@ -421,15 +487,16 @@ dotnet test
 # One backend
 dotnet test tests/DeepSigma.Persistence.Sqlite.Tests
 
-# Postgres requires Docker Desktop to be running
+# Postgres and SQL Server require Docker Desktop to be running
 dotnet test tests/DeepSigma.Persistence.Postgres.Tests
+dotnet test tests/DeepSigma.Persistence.SqlServer.Tests
 ```
 
-Each backend runs the same 63-test contract suite (`RepositoryContractTests` → `BulkRepositoryContractTests` → `ExpiringRepositoryContractTests`). Tests are isolated: InMemory creates a fresh instance per test, SQLite and FileSystem use unique temp paths, Postgres spins up one Testcontainers container and uses a separate table per test.
+Each backend runs the same 63-test contract suite (`RepositoryContractTests` → `BulkRepositoryContractTests` → `ExpiringRepositoryContractTests`), built on **xunit.v3**. Tests are isolated: InMemory creates a fresh instance per test, SQLite and FileSystem use unique temp paths, Postgres and SQL Server spin up one Testcontainers container each and use a separate table per test.
 
 The contract suite includes four concurrency cases (concurrent same-key writes, concurrent distinct-key writes, racing delete-vs-get, and racing `SetTtl` on the same key) so every backend's thread-safety claim is enforced rather than asserted.
 
-Current status: **252 / 252 passing** across all backends.
+Current status: **315 / 315 passing** across all five backends.
 
 ---
 
@@ -439,15 +506,16 @@ Current status: **252 / 252 passing** across all backends.
 
 **Swappability** is enforced through open-generic DI registration (`typeof(IRepository<>)` → `typeof(SqliteRepository<>)`). Changing backends is a one-line change in the DI setup.
 
-**Schema migrations** (SQLite and Postgres) are tracked in a `_migrations` table keyed by string id (e.g. `001_initial`). The underlying runner is `DeepSigma.DataAccess.RelationalDatabase.MigrationRunner`, supplied by the provider package and registered automatically. Set `AutoMigrate = false` if you want the application to throw `SchemaVersionException` (with the list of pending ids in the message) rather than apply migrations automatically — useful for controlled production deployments. See [Manual schema migration](#manual-schema-migration) for the explicit-control recipe.
+**Schema migrations** (SQLite, Postgres, SQL Server) are tracked in a `_migrations` table keyed by string id (e.g. `001_initial`). The underlying runner is `DeepSigma.DataAccess.RelationalDatabase.MigrationRunner`, supplied by the provider package and registered automatically. Set `AutoMigrate = false` if you want the application to throw `SchemaVersionException` (with the list of pending ids in the message) rather than apply migrations automatically — useful for controlled production deployments. See [Manual schema migration](#manual-schema-migration) for the explicit-control recipe.
 
 **TTL precision:**
 - SQLite stores timestamps as `"yyyy-MM-dd HH:mm:ss.fff"` and compares against `strftime('%Y-%m-%d %H:%M:%f', 'now')` for millisecond accuracy.
 - Postgres uses native `TIMESTAMPTZ` with microsecond precision and `NOW()`.
+- SQL Server uses native `DATETIMEOFFSET` (100 ns ticks) and `SYSDATETIMEOFFSET()`.
 
 **FileSystem locking** is in-process only using `AsyncKeyedLock`. Each key has its own semaphore (keyed on SHA-256 hash) so writes to different keys never contend with each other.
 
-**Concurrency** — all backends are safe for concurrent use within a single process. Each uses a different mechanism: `ConcurrentDictionary` (InMemory), per-key `AsyncKeyedLock` (FileSystem), WAL journal + `busy_timeout` (SQLite), or PostgreSQL row-level locking. The contract test suite exercises this directly with four concurrency cases shared across every backend, so the claim is enforced rather than asserted. Cross-process safety is *not* provided by InMemory or FileSystem; use SQLite or Postgres if multiple processes touch the same data.
+**Concurrency** — all backends are safe for concurrent use within a single process. Each uses a different mechanism: `ConcurrentDictionary` (InMemory), per-key `AsyncKeyedLock` (FileSystem), WAL journal + `busy_timeout` (SQLite), PostgreSQL row-level locking, or SQL Server `UPDATE WITH (UPDLOCK, HOLDLOCK)` + `IF @@ROWCOUNT = 0 INSERT` inside `BEGIN TRAN`. The contract test suite exercises this directly with four concurrency cases shared across every backend, so the claim is enforced rather than asserted. Cross-process safety is *not* provided by InMemory or FileSystem; use SQLite, Postgres, or SQL Server if multiple processes touch the same data.
 
 **Envelope versioning** — SQLite and Postgres back-ends do not use the envelope; they store the JSON-serialised value directly. The FileSystem backend wraps each value in `Envelope<TValue> { V = 1, Key, Value, CreatedAt, UpdatedAt, ExpiresAt }` to enable future lazy migration without a full re-write.
 
@@ -459,8 +527,9 @@ Current status: **252 / 252 passing** across all backends.
 | FileSystem | `Envelope<TValue>` via `IJsonValueSerializer` | Custom `IJsonValueSerializer` registration |
 | SQLite | `TValue` via `IJsonValueSerializer`, stored as TEXT | Custom `IJsonValueSerializer` registration |
 | Postgres | `TValue` via `IJsonValueSerializer`, stored as JSONB | Custom `IJsonValueSerializer` registration |
+| SQL Server | `TValue` via `IJsonValueSerializer`, stored as NVARCHAR(MAX) | Custom `IJsonValueSerializer` registration |
 
-The interface is intentionally JSON-only: Postgres `JSONB` requires JSON, FileSystem files are conventionally JSON for human inspection, and SQLite stores TEXT that conventionally holds JSON. Non-JSON binary formats (MessagePack, protobuf) are not currently supported via this hook.
+The interface is intentionally JSON-only: Postgres `JSONB` requires JSON, FileSystem files are conventionally JSON for human inspection, SQLite stores TEXT that conventionally holds JSON, and SQL Server's `NVARCHAR(MAX)` is used the same way (SQL Server 2016+ has `ISJSON()` and `OPENJSON` for downstream querying if needed). Non-JSON binary formats (MessagePack, protobuf) are not currently supported via this hook.
 
 > **Future extension — typed `IValueSerializer<TValue>`.** If real demand emerges for binary serializers (MessagePack, protobuf, source-generated typed JSON), the planned shape is a *separate*, additive interface:
 >
@@ -497,10 +566,11 @@ builder.Services.AddSingleton<IJsonValueSerializer>(new JsonValueSerializer(json
 
 builder.Services.AddSqlitePersistence(o => { o.ConnectionString = "Data Source=app.db"; });
 // builder.Services.AddPostgresPersistence(...);   // would also pick up the same serializer
+// builder.Services.AddSqlServerPersistence(...);  // ditto
 // builder.Services.AddFileSystemPersistence(...); // ditto
 ```
 
-`AddSqlitePersistence`, `AddPostgresPersistence`, and `AddFileSystemPersistence` all call `AddPersistenceCore()` internally, which uses `TryAddSingleton` for `IJsonValueSerializer` — the registration above wins because it ran first. The same serializer is used by all three. (`AddInMemoryPersistence` does not need a serializer; values are stored as live objects.)
+`AddSqlitePersistence`, `AddPostgresPersistence`, `AddSqlServerPersistence`, and `AddFileSystemPersistence` all call `AddPersistenceCore()` internally, which uses `TryAddSingleton` for `IJsonValueSerializer` — the registration above wins because it ran first. The same serializer is used by all four. (`AddInMemoryPersistence` does not need a serializer; values are stored as live objects.)
 
 ### Manual schema migration
 
@@ -550,7 +620,7 @@ catch (SchemaVersionException ex)
 }
 ```
 
-The same pattern works for Postgres — replace `SqliteRepository<object>` / `SqliteOptions` / `AddSqlitePersistence` with the Postgres equivalents.
+The same pattern works for Postgres and SQL Server — replace `SqliteRepository<object>` / `SqliteOptions` / `AddSqlitePersistence` with the relevant backend's equivalents.
 
 ---
 

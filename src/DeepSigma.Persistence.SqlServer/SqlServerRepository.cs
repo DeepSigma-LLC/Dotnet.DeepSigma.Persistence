@@ -132,7 +132,7 @@ public sealed class SqlServerRepository<TValue> : IExpiringRepository<TValue>
         string? prefix = null,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        var (where, prefixValue) = SqlPrefix.Build(prefix);
+        var (where, prefixValue) = SqlPrefix.Build(prefix, "[key]");
         var sql = $"SELECT [key] FROM {_t} WHERE {LiveWhere}{where} ORDER BY [key]";
         var stream = prefixValue is null
             ? _db.QueryStreamAsync<string>(sql, cancellationToken: ct)
@@ -146,7 +146,7 @@ public sealed class SqlServerRepository<TValue> : IExpiringRepository<TValue>
         string? prefix = null,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        var (where, prefixValue) = SqlPrefix.Build(prefix);
+        var (where, prefixValue) = SqlPrefix.Build(prefix, "[key]");
         var sql = $"SELECT [key] AS [Key], [value] AS [Value] FROM {_t} WHERE {LiveWhere}{where} ORDER BY [key]";
         var stream = prefixValue is null
             ? _db.QueryStreamAsync<KeyValueRow>(sql, cancellationToken: ct)

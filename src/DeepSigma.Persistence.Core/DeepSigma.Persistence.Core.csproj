@@ -5,11 +5,11 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>DeepSigma.Persistence.Core</Title>
-    <Version>1.1.0</Version>
+    <Version>1.3.0</Version>
     <Authors>DeepSigma LLC</Authors>
     <PackageProjectUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</PackageProjectUrl>
     <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence.git</RepositoryUrl>
-    <PackageIcon>Assets\DeepSigma.png</PackageIcon>
+    <PackageIcon>DeepSigma.png</PackageIcon>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

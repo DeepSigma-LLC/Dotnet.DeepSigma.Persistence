@@ -5,11 +5,11 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>DeepSigma.Persistence.InMemory</Title>
-    <Version>1.1.0</Version>
+    <Version>1.3.0</Version>
     <Authors>DeepSigma LLC</Authors>
     <Copyright />
     <PackageProjectUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</PackageProjectUrl>
-    <PackageIcon>Assets\DeepSigma.png</PackageIcon>
+    <PackageIcon>DeepSigma.png</PackageIcon>
     <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</RepositoryUrl>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
@@ -18,11 +18,5 @@
     <ProjectReference Include="..\DeepSigma.Persistence.Core\DeepSigma.Persistence.Core.csproj" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="Assets\DeepSigma.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
   </ItemGroup>
 </Project>
