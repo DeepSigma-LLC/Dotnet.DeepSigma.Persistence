@@ -53,12 +53,20 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
     // catching IOException covers "file missing" and "transient lock during atomic move".
     // JsonException is rethrown as SerializationException so callers can handle it backend-agnostically.
     // Anything else (UnauthorizedAccessException, OutOfMemoryException, OperationCanceledException) propagates.
+    //
+    // FileShare.Read | FileShare.Delete lets a concurrent File.Delete succeed while a read is in
+    // flight — on Windows, File.ReadAllBytes would otherwise hold an exclusive-against-delete handle
+    // for the duration of the read, racing the contract-test concurrent delete+read case. The bytes
+    // are buffered into managed memory immediately, so the file can be unlinked mid-read safely.
 
     private Envelope<TValue>? TryReadEnvelope(string path)
     {
         try
         {
-            var bytes = File.ReadAllBytes(path);
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read,
+                FileShare.Read | FileShare.Delete);
+            var bytes = new byte[fs.Length];
+            fs.ReadExactly(bytes);
             return _serializer.Deserialize<Envelope<TValue>>(bytes);
         }
         catch (IOException) { return null; }
@@ -72,7 +80,10 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
     {
         try
         {
-            var bytes = await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false);
+            await using var fs = new FileStream(path, FileMode.Open, FileAccess.Read,
+                FileShare.Read | FileShare.Delete, bufferSize: 4096, useAsync: true);
+            var bytes = new byte[fs.Length];
+            await fs.ReadExactlyAsync(bytes, ct).ConfigureAwait(false);
             return _serializer.Deserialize<Envelope<TValue>>(bytes);
         }
         catch (IOException) { return null; }

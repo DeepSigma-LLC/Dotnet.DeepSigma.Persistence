@@ -6,7 +6,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Title>DeepSigma.Persistence.FileSystem</Title>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Authors>DeepSigma LLC</Authors>
     <PackageProjectUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</PackageProjectUrl>
     <PackageIcon>Assets\DeepSigma.png</PackageIcon>
