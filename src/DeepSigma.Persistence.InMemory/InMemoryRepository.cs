@@ -172,7 +172,11 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
         var now = DateTimeOffset.UtcNow;
         var newExpiry = ttl.HasValue ? now + ttl.Value : (DateTimeOffset?)null;
 
-        while (true)
+        // Bounded CAS retry: under high concurrent contention on the same key, give up after a fixed
+        // budget rather than spinning indefinitely. 100 is well above realistic contention for an
+        // in-process repository — a busier workload should not be using this backend in the first place.
+        const int maxAttempts = 100;
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
             if (!Data.TryGetValue(key, out var current) || current.IsExpired(now))
                 return Task.FromResult(false);
@@ -181,6 +185,8 @@ public sealed class InMemoryRepository<TValue> : IExpiringRepository<TValue>
                 return Task.FromResult(true);
             now = DateTimeOffset.UtcNow;
         }
+        throw new InvalidOperationException(
+            $"SetTtlAsync on key '{key}' exceeded the {maxAttempts}-attempt retry budget under concurrent contention.");
     }
 
     /// <inheritdoc/>

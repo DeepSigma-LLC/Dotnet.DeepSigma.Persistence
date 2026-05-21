@@ -3,24 +3,24 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <!-- ORM -->
-    <PackageVersion Include="Dapper" Version="2.1.79" />
-    <!-- Backends -->
-    <PackageVersion Include="DeepSigma.DataAccess.Postgres" Version="1.1.0" />
-    <PackageVersion Include="DeepSigma.DataAccess.RelationalDatabase" Version="1.1.0" />
-    <PackageVersion Include="DeepSigma.DataAccess.Sqlite" Version="1.1.0" />
-    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.8" />
-    <PackageVersion Include="Npgsql" Version="10.0.2" />
+    <!-- Backends (Dapper / Microsoft.Data.Sqlite / Npgsql / Microsoft.Data.SqlClient come transitively from these) -->
+    <PackageVersion Include="DeepSigma.DataAccess.Postgres" Version="1.2.0" />
+    <PackageVersion Include="DeepSigma.DataAccess.RelationalDatabase" Version="1.2.0" />
+    <PackageVersion Include="DeepSigma.DataAccess.Sqlite" Version="1.2.0" />
+    <PackageVersion Include="DeepSigma.DataAccess.SqlServer" Version="1.2.0" />
     <!-- Utilities -->
     <PackageVersion Include="AsyncKeyedLock" Version="6.4.1" />
     <!-- Extensions -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
     <!-- Test -->
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
-    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="3.10.0" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.12.0" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
   </ItemGroup>
 </Project>

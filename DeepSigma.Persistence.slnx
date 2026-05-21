@@ -1,18 +1,20 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/DeepSigma.Persistence.Abstractions/DeepSigma.Persistence.Abstractions.csproj" />
+    <Project Path="src/DeepSigma.Persistence.Abstractions/DeepSigma.Persistence.Abstraction.csproj" />
     <Project Path="src/DeepSigma.Persistence.Core/DeepSigma.Persistence.Core.csproj" />
     <Project Path="src/DeepSigma.Persistence.FileSystem/DeepSigma.Persistence.FileSystem.csproj" />
     <Project Path="src/DeepSigma.Persistence.InMemory/DeepSigma.Persistence.InMemory.csproj" />
     <Project Path="src/DeepSigma.Persistence.Postgres/DeepSigma.Persistence.Postgres.csproj" />
     <Project Path="src/DeepSigma.Persistence.Sqlite/DeepSigma.Persistence.Sqlite.csproj" />
+    <Project Path="src/DeepSigma.Persistence.SqlServer/DeepSigma.Persistence.SqlServer.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/DeepSigma.Persistence.Abstractions.Testing/DeepSigma.Persistence.Abstractions.Testing.csproj" />
+    <Project Path="tests/DeepSigma.Persistence.Abstractions.Testing/DeepSigma.Persistence.Abstraction.Testing.csproj" />
     <Project Path="tests/DeepSigma.Persistence.FileSystem.Tests/DeepSigma.Persistence.FileSystem.Tests.csproj" />
     <Project Path="tests/DeepSigma.Persistence.InMemory.Tests/DeepSigma.Persistence.InMemory.Tests.csproj" />
     <Project Path="tests/DeepSigma.Persistence.Postgres.Tests/DeepSigma.Persistence.Postgres.Tests.csproj" />
     <Project Path="tests/DeepSigma.Persistence.Sqlite.Tests/DeepSigma.Persistence.Sqlite.Tests.csproj" />
+    <Project Path="tests/DeepSigma.Persistence.SqlServer.Tests/DeepSigma.Persistence.SqlServer.Tests.csproj" />
   </Folder>
 </Solution>
 

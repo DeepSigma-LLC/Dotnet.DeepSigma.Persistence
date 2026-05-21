@@ -1,8 +1,9 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using Dapper;
+using DeepSigma.DataAccess.RelationalDatabase;
+using DeepSigma.DataAccess.Sqlite;
 using DeepSigma.Persistence.Core;
-using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DeepSigma.Persistence.Sqlite;
 
@@ -14,35 +15,51 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
 {
     private readonly SqliteOptions _options;
     private readonly IJsonValueSerializer _serializer;
+    private readonly RelationalDatabaseApi _db;
     private readonly string _t; // table name shorthand
 
     /// <summary>
-    /// Initializes a new instance of the SqliteRepository class with the specified configuration options and JSON serializer.
+    /// Initializes a new instance using DI-supplied dependencies. Runs schema setup before returning.
     /// </summary>
+    /// <param name="db">The Dapper-backed database API supplied by the SQLite provider.</param>
+    /// <param name="migrationRunner">The migration runner used to apply pending migrations at startup.</param>
     /// <param name="options">The configuration options for the SQLite repository.</param>
     /// <param name="serializer">The JSON serializer used for serializing and deserializing values.</param>
-    public SqliteRepository(SqliteOptions options, IJsonValueSerializer serializer)
+    public SqliteRepository(
+        RelationalDatabaseApi db,
+        MigrationRunner migrationRunner,
+        SqliteOptions options,
+        IJsonValueSerializer serializer)
     {
+        _db = db;
         _options = options;
         _serializer = serializer;
         _t = options.TableName;
-        SqliteMigrations.EnsureSchema(options);
+        SqliteSchemaBootstrap.EnsureSchema(migrationRunner, db, options);
     }
 
     /// <summary>
-    /// Convenience constructor for testing; uses <see cref="JsonValueSerializer"/>.
+    /// Convenience constructor for direct construction (e.g. tests). Builds a private connection factory,
+    /// <see cref="RelationalDatabaseApi"/>, and <see cref="MigrationRunner"/> from <paramref name="options"/>
+    /// and uses the default JSON serializer.
     /// </summary>
-    public SqliteRepository(SqliteOptions options) : this(options, new JsonValueSerializer()) { }
+    public SqliteRepository(SqliteOptions options) : this(BuildDb(options), options, new JsonValueSerializer()) { }
+
+    private SqliteRepository(RelationalDatabaseApi db, SqliteOptions options, IJsonValueSerializer serializer)
+        : this(
+            db,
+            new MigrationRunner(db, SqliteSchemaBootstrap.CreateMigrationsTableSql, NullLogger<MigrationRunner>.Instance),
+            options,
+            serializer)
+    { }
+
+    private static RelationalDatabaseApi BuildDb(SqliteOptions options)
+    {
+        var factory = new SqliteConnectionFactory(options.ConnectionString, SqliteSchemaBootstrap.ApplyConnectionPragmas);
+        return new RelationalDatabaseApi(factory, NullLogger<RelationalDatabaseApi>.Instance);
+    }
 
     private void ValidateKey(string key) => KeyValidator.Validate(key, _options.MaxKeyLength);
-
-    private SqliteConnection CreateConnection()
-    {
-        var conn = new SqliteConnection(_options.ConnectionString);
-        conn.Open();
-        conn.Execute("PRAGMA journal_mode=WAL;");
-        return conn;
-    }
 
     // Millisecond precision so short TTLs compare correctly against strftime('%Y-%m-%d %H:%M:%f','now').
     private static string ToSqlite(DateTimeOffset dt) =>
@@ -61,10 +78,9 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
     public async Task<TValue?> GetAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
-        using var conn = CreateConnection();
-        var val = await conn.QueryFirstOrDefaultAsync<string>(
+        var val = await _db.QueryFirstOrDefaultAsync<object, string>(
             $"SELECT value FROM {_t} WHERE key = @Key AND {LiveWhere}",
-            new { Key = key }).ConfigureAwait(false);
+            new { Key = key }, cancellationToken: ct).ConfigureAwait(false);
         return val is null ? default : _serializer.DeserializeFromString<TValue>(val);
     }
 
@@ -72,9 +88,8 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
     public async Task SetAsync(string key, TValue value, SetOptions? options = null, CancellationToken ct = default)
     {
         ValidateKey(key);
-        using var conn = CreateConnection();
         var now = ToSqlite(DateTimeOffset.UtcNow);
-        await conn.ExecuteAsync(
+        await _db.ExecuteAsync(
             $"""
              INSERT INTO {_t}(key, value, created_at, updated_at, expires_at)
              VALUES(@Key, @Value, @Now, @Now, @ExpiresAt)
@@ -89,17 +104,16 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
                 Value = _serializer.SerializeToString(value),
                 Now = now,
                 ExpiresAt = ToSqlite(options?.ComputeExpiry())
-            }).ConfigureAwait(false);
+            }, cancellationToken: ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<bool> DeleteAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
-        using var conn = CreateConnection();
-        var rows = await conn.ExecuteAsync(
+        var rows = await _db.ExecuteAsync(
             $"DELETE FROM {_t} WHERE key = @Key AND {LiveWhere}",
-            new { Key = key }).ConfigureAwait(false);
+            new { Key = key }, cancellationToken: ct).ConfigureAwait(false);
         return rows > 0;
     }
 
@@ -107,10 +121,9 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
     public async Task<bool> ExistsAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
-        using var conn = CreateConnection();
-        var count = await conn.QueryFirstAsync<int>(
+        var count = await _db.ExecuteScalarAsync<object, int>(
             $"SELECT COUNT(1) FROM {_t} WHERE key = @Key AND {LiveWhere}",
-            new { Key = key }).ConfigureAwait(false);
+            new { Key = key }, cancellationToken: ct).ConfigureAwait(false);
         return count > 0;
     }
 
@@ -120,16 +133,12 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         var (where, prefixValue) = SqlPrefix.Build(prefix);
-        using var conn = CreateConnection();
-        var keys = await conn.QueryAsync<string>(
-            $"SELECT key FROM {_t} WHERE {LiveWhere}{where} ORDER BY key",
-            prefixValue is null ? null : new { Prefix = prefixValue })
-            .ConfigureAwait(false);
-        foreach (var key in keys)
-        {
-            ct.ThrowIfCancellationRequested();
+        var sql = $"SELECT key FROM {_t} WHERE {LiveWhere}{where} ORDER BY key";
+        var stream = prefixValue is null
+            ? _db.QueryStreamAsync<string>(sql, cancellationToken: ct)
+            : _db.QueryStreamAsync<object, string>(sql, new { Prefix = prefixValue }, cancellationToken: ct);
+        await foreach (var key in stream.WithCancellation(ct).ConfigureAwait(false))
             yield return key;
-        }
     }
 
     /// <inheritdoc/>
@@ -138,17 +147,15 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         var (where, prefixValue) = SqlPrefix.Build(prefix);
-        using var conn = CreateConnection();
-        var rows = await conn.QueryAsync<(string Key, string Value)>(
-            $"SELECT key, value FROM {_t} WHERE {LiveWhere}{where} ORDER BY key",
-            prefixValue is null ? null : new { Prefix = prefixValue })
-            .ConfigureAwait(false);
-        foreach (var (key, value) in rows)
-        {
-            ct.ThrowIfCancellationRequested();
-            yield return new KeyValuePair<string, TValue>(key, _serializer.DeserializeFromString<TValue>(value)!);
-        }
+        var sql = $"SELECT key AS Key, value AS Value FROM {_t} WHERE {LiveWhere}{where} ORDER BY key";
+        var stream = prefixValue is null
+            ? _db.QueryStreamAsync<KeyValueRow>(sql, cancellationToken: ct)
+            : _db.QueryStreamAsync<object, KeyValueRow>(sql, new { Prefix = prefixValue }, cancellationToken: ct);
+        await foreach (var row in stream.WithCancellation(ct).ConfigureAwait(false))
+            yield return new KeyValuePair<string, TValue>(row.Key, _serializer.DeserializeFromString<TValue>(row.Value)!);
     }
+
+    private sealed record KeyValueRow(string Key, string Value);
 
     // ── IBulkRepository<TValue> ──────────────────────────────────────────
     /// <inheritdoc/>
@@ -156,14 +163,13 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
         IEnumerable<string> keys, CancellationToken ct = default)
     {
         var result = new Dictionary<string, TValue>();
-        foreach (var chunk in KeyValidator.ValidateAll(keys, _options.MaxKeyLength).Chunk(500))
+        foreach (var chunk in KeyValidator.ValidateAll(keys, _options.MaxKeyLength).Chunk(SqlBulkChunk.Size))
         {
-            using var conn = CreateConnection();
-            var rows = await conn.QueryAsync<(string Key, string Value)>(
-                $"SELECT key, value FROM {_t} WHERE key IN @Keys AND {LiveWhere}",
-                new { Keys = chunk }).ConfigureAwait(false);
-            foreach (var (key, value) in rows)
-                result[key] = _serializer.DeserializeFromString<TValue>(value)!;
+            var rows = await _db.GetAllAsync<object, KeyValueRow>(
+                $"SELECT key AS Key, value AS Value FROM {_t} WHERE key IN @Keys AND {LiveWhere}",
+                new { Keys = chunk }, cancellationToken: ct).ConfigureAwait(false);
+            foreach (var row in rows)
+                result[row.Key] = _serializer.DeserializeFromString<TValue>(row.Value)!;
         }
         return result;
     }
@@ -184,18 +190,22 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
                 updated_at = excluded.updated_at,
                 expires_at = excluded.expires_at
             """;
-        foreach (var chunk in items.Chunk(500))
+        foreach (var chunk in items.Chunk(SqlBulkChunk.Size))
         {
-            using var conn = CreateConnection();
-            using var tx = conn.BeginTransaction();
-            foreach (var (key, value) in chunk)
+            var rows = chunk.Select(kv =>
             {
-                ValidateKey(key);
-                await conn.ExecuteAsync(sql,
-                    new { Key = key, Value = _serializer.SerializeToString(value), Now = now, ExpiresAt = expiry }, tx)
-                    .ConfigureAwait(false);
-            }
-            tx.Commit();
+                ValidateKey(kv.Key);
+                return new
+                {
+                    Key = kv.Key,
+                    Value = _serializer.SerializeToString(kv.Value),
+                    Now = now,
+                    ExpiresAt = expiry
+                };
+            });
+            await using var tx = await _db.BeginTransactionAsync(cancellationToken: ct).ConfigureAwait(false);
+            await tx.ExecuteAllAsync(sql, rows, cancellationToken: ct).ConfigureAwait(false);
+            await tx.CommitAsync(ct).ConfigureAwait(false);
         }
     }
 
@@ -203,12 +213,11 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
     public async Task<int> DeleteManyAsync(IEnumerable<string> keys, CancellationToken ct = default)
     {
         var total = 0;
-        foreach (var chunk in KeyValidator.ValidateAll(keys, _options.MaxKeyLength).Chunk(500))
+        foreach (var chunk in KeyValidator.ValidateAll(keys, _options.MaxKeyLength).Chunk(SqlBulkChunk.Size))
         {
-            using var conn = CreateConnection();
-            total += await conn.ExecuteAsync(
+            total += await _db.ExecuteAsync(
                 $"DELETE FROM {_t} WHERE key IN @Keys AND {LiveWhere}",
-                new { Keys = chunk }).ConfigureAwait(false);
+                new { Keys = chunk }, cancellationToken: ct).ConfigureAwait(false);
         }
         return total;
     }
@@ -225,12 +234,11 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
     public async Task<TimeSpan?> GetTtlAsync(string key, CancellationToken ct = default)
     {
         ValidateKey(key);
-        using var conn = CreateConnection();
         // null row     => key missing (or expired and filtered by LiveWhere)
         // ExpiresAt=null => key exists with no expiry
-        var row = await conn.QueryFirstOrDefaultAsync<ExpiresAtRow>(
+        var row = await _db.QueryFirstOrDefaultAsync<object, ExpiresAtRow>(
             $"SELECT expires_at AS ExpiresAt FROM {_t} WHERE key = @Key AND {LiveWhere}",
-            new { Key = key }).ConfigureAwait(false);
+            new { Key = key }, cancellationToken: ct).ConfigureAwait(false);
         if (row is null) return null;
         if (row.ExpiresAt is null) return null;
 
@@ -249,24 +257,22 @@ public sealed class SqliteRepository<TValue> : IExpiringRepository<TValue>
     public async Task<bool> SetTtlAsync(string key, TimeSpan? ttl, CancellationToken ct = default)
     {
         ValidateKey(key);
-        using var conn = CreateConnection();
-        var rows = await conn.ExecuteAsync(
+        var rows = await _db.ExecuteAsync(
             $"UPDATE {_t} SET expires_at = @ExpiresAt, updated_at = @Now WHERE key = @Key AND {LiveWhere}",
             new
             {
                 Key = key,
-                ExpiresAt = ttl.HasValue ? ToSqlite(DateTimeOffset.UtcNow + ttl.Value) : null as string,
+                ExpiresAt = ttl.HasValue ? ToSqlite(DateTimeOffset.UtcNow + ttl.Value) : null,
                 Now = ToSqlite(DateTimeOffset.UtcNow)
-            }).ConfigureAwait(false);
+            }, cancellationToken: ct).ConfigureAwait(false);
         return rows > 0;
     }
 
     /// <inheritdoc/>
     public async Task<int> PurgeExpiredAsync(CancellationToken ct = default)
     {
-        using var conn = CreateConnection();
-        return await conn.ExecuteAsync(
-            $"DELETE FROM {_t} WHERE expires_at IS NOT NULL AND expires_at <= strftime('%Y-%m-%d %H:%M:%f','now')")
-            .ConfigureAwait(false);
+        return await _db.ExecuteAsync(
+            $"DELETE FROM {_t} WHERE expires_at IS NOT NULL AND expires_at <= strftime('%Y-%m-%d %H:%M:%f','now')",
+            cancellationToken: ct).ConfigureAwait(false);
     }
 }

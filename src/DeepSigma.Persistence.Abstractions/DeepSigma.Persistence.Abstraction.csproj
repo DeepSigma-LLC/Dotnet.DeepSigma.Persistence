@@ -1,19 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Description>Persistence abstractions — interfaces, options, and exceptions for DeepSigma.Persistance.</Description>
+    <Description>Persistence abstractions — interfaces, options, and exceptions for DeepSigma.Persistence.</Description>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>1.0.0</Version>
-    <Title>DeepSigma.Persistence.Abstractions</Title>
+    <Version>1.1.0</Version>
+    <Title>DeepSigma.Persistence.Abstraction</Title>
     <Authors>DeepSigma LLC</Authors>
     <PackageProjectUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</PackageProjectUrl>
     <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</RepositoryUrl>
     <PackageIcon>Assets\DeepSigma.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
-  <ItemGroup>
-    <None Remove="C:\Users\brend\Desktop\GitHub\DeepSigmaRepos\Dotnet.DeepSigma.Persistence\src\DeepSigma.Persistence.Core\Assets\DeepSigma.png" />
-  </ItemGroup>
   <ItemGroup>
     <None Update="Assets\DeepSigma.png">
       <Pack>True</Pack>

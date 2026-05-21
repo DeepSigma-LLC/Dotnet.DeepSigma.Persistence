@@ -1,7 +1,8 @@
+using DeepSigma.DataAccess.RelationalDatabase;
 using DeepSigma.Persistence.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Npgsql;
+using Microsoft.Extensions.Logging;
 
 namespace DeepSigma.Persistence.Postgres;
 
@@ -14,10 +15,10 @@ public static class ServiceCollectionExtensions
     /// Adds PostgreSQL-based persistence services and configuration to the specified service collection.
     /// </summary>
     /// <remarks>
-    /// This method registers the required services for using PostgreSQL as a persistence provider,
-    /// including connection configuration and repository implementation. If background purging is enabled in the
-    /// options, a hosted purge service is also registered. Call this method during application startup to enable
-    /// PostgreSQL persistence features.
+    /// Registers the underlying <c>DeepSigma.DataAccess.Postgres</c> provider (connection factory backed by
+    /// <c>NpgsqlDataSource</c>, <c>RelationalDatabaseApi</c>, schema service, bulk copier, and
+    /// <c>MigrationRunner</c>), the default JSON serializer, and the repository implementation. If background
+    /// purging is enabled in the options, a hosted purge service is also registered.
     /// </remarks>
     /// <param name="services">The service collection to which the persistence services will be added. Cannot be null.</param>
     /// <param name="configure">A delegate to configure the PostgreSQL persistence options. Cannot be null.</param>
@@ -30,14 +31,28 @@ public static class ServiceCollectionExtensions
         configure(options);
         options.Validate();
         services.TryAddSingleton(options);
-        services.TryAddSingleton(_ => NpgsqlDataSource.Create(options.ConnectionString));
 
-        // Register the default JSON serializer if the caller hasn't already supplied one.
+        // Registers PostgresConnectionFactory (with owned NpgsqlDataSource), RelationalDatabaseApi,
+        // PostgresSchemaService, PostgresBulkCopier, and MigrationRunner.
+        services.AddDeepSigmaPostgres(options.ConnectionString);
+
         services.AddPersistenceCore();
         services.AddRepositoryImplementation(typeof(PostgresRepository<>));
 
         if (options.BackgroundPurge)
-            services.AddHostedService<PostgresPurgeService>();
+        {
+            services.AddHostedService(sp =>
+            {
+                var db = sp.GetRequiredService<RelationalDatabaseApi>();
+                var opts = sp.GetRequiredService<PostgresOptions>();
+                return new BackgroundPurgeService(
+                    ct => db.ExecuteAsync(
+                        $"DELETE FROM {opts.TableName} WHERE expires_at IS NOT NULL AND expires_at <= NOW()",
+                        cancellationToken: ct),
+                    opts.PurgeInterval,
+                    sp.GetService<ILogger<BackgroundPurgeService>>());
+            });
+        }
 
         return services;
     }

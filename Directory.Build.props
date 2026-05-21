@@ -11,5 +11,16 @@
     <Copyright>Copyright © DeepSigma 2026</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>DeepSigma.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <!--
+    Link the root README.md into every packable project so it ships with the package and renders
+    on nuget.org. $(MSBuildThisFileDirectory) here resolves to the repo root.
+  -->
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)README.md"
+          Pack="true"
+          PackagePath="\" />
+  </ItemGroup>
 </Project>

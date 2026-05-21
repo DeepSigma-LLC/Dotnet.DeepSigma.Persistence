@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DeepSigma.Persistence.SqlServer\DeepSigma.Persistence.SqlServer.csproj" />
+    <ProjectReference Include="..\DeepSigma.Persistence.Abstractions.Testing\DeepSigma.Persistence.Abstraction.Testing.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+</Project>

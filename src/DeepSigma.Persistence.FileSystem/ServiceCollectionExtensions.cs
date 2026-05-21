@@ -1,6 +1,7 @@
 using DeepSigma.Persistence.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace DeepSigma.Persistence.FileSystem;
 
@@ -27,10 +28,22 @@ public static class ServiceCollectionExtensions
         options.Validate();
         services.TryAddSingleton(options);
 
+        // Register the default JSON serializer if the caller hasn't already supplied one — used by
+        // FileSystemRepository for envelope read/write.
+        services.AddPersistenceCore();
         services.AddRepositoryImplementation(typeof(FileSystemRepository<>));
 
         if (options.BackgroundPurge)
-            services.AddHostedService<FileSystemPurgeService>();
+        {
+            services.AddHostedService(sp =>
+            {
+                var opts = sp.GetRequiredService<FileSystemOptions>();
+                return new BackgroundPurgeService(
+                    ct => Task.FromResult(FileSystemPurge.PurgeExpired(opts, ct)),
+                    opts.PurgeInterval,
+                    sp.GetService<ILogger<BackgroundPurgeService>>());
+            });
+        }
 
         return services;
     }

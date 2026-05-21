@@ -1,6 +1,5 @@
 using DeepSigma.Persistence.Postgres;
 using DeepSigma.Persistence.Testing;
-using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -10,18 +9,16 @@ public sealed class PostgresRepositoryTests
     : ExpiringRepositoryContractTests<PostgresRepository<string>>, IAsyncLifetime
 {
     private PostgreSqlContainer _container = null!;
-    private NpgsqlDataSource _dataSource = null!;
     private int _tableCounter;
 
     // Container round-trips need more time than in-memory or local SQLite.
     protected override TimeSpan ShortTtl => TimeSpan.FromMilliseconds(500);
     protected override TimeSpan ExpiryBuffer => TimeSpan.FromMilliseconds(1500);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _container = new PostgreSqlBuilder().Build();
         await _container.StartAsync();
-        _dataSource = NpgsqlDataSource.Create(_container.GetConnectionString());
     }
 
     protected override PostgresRepository<string> CreateRepository()
@@ -33,12 +30,11 @@ public sealed class PostgresRepositoryTests
             TableName = tableName,
             AutoMigrate = true
         };
-        return new PostgresRepository<string>(_dataSource, options);
+        return new PostgresRepository<string>(options);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        await _dataSource.DisposeAsync();
         await _container.DisposeAsync();
     }
 }

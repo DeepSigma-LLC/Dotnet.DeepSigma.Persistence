@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using AsyncKeyedLock;
 using DeepSigma.Persistence.Core;
 
@@ -12,20 +11,35 @@ namespace DeepSigma.Persistence.FileSystem;
 /// File-per-key persistence backend. Single-process only — no cross-process file locking.
 /// Practical scale: ~50k keys; consider SQLite beyond that.
 /// </summary>
+/// <remarks>
+/// Reads and writes go through <see cref="IJsonValueSerializer"/> so a custom
+/// <c>JsonValueSerializer</c> (with camelCase, custom converters, source-generated metadata, etc.)
+/// registered in DI is honored here the same way it is on the SQL backends. The file format remains
+/// UTF-8 JSON.
+/// </remarks>
 public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
 {
     private readonly FileSystemOptions _options;
+    private readonly IJsonValueSerializer _serializer;
     private readonly AsyncKeyedLocker<string> _locker = new();
 
     /// <summary>
-    /// Initializes a new instance of the FileSystemRepository class with the specified options. The constructor ensures that the root directory exists, creating it if necessary. If the root path is invalid or inaccessible, an exception will be thrown.
+    /// Initializes a new instance using DI-supplied dependencies.
     /// </summary>
     /// <param name="options">The file system options to configure the repository.</param>
-    public FileSystemRepository(FileSystemOptions options)
+    /// <param name="serializer">The JSON serializer used for envelope persistence.</param>
+    public FileSystemRepository(FileSystemOptions options, IJsonValueSerializer serializer)
     {
         _options = options;
+        _serializer = serializer;
         Directory.CreateDirectory(options.RootPath);
     }
+
+    /// <summary>
+    /// Convenience constructor for direct construction (e.g. tests). Uses the default JSON serializer.
+    /// </summary>
+    public FileSystemRepository(FileSystemOptions options)
+        : this(options, new JsonValueSerializer()) { }
 
     private void ValidateKey(string key) => KeyValidator.Validate(key, _options.MaxKeyLength);
 
@@ -40,42 +54,43 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
     // JsonException is rethrown as SerializationException so callers can handle it backend-agnostically.
     // Anything else (UnauthorizedAccessException, OutOfMemoryException, OperationCanceledException) propagates.
 
-    private static Envelope<TValue>? TryReadEnvelope(string path)
+    private Envelope<TValue>? TryReadEnvelope(string path)
     {
         try
         {
-            using var fs = File.OpenRead(path);
-            return JsonSerializer.Deserialize<Envelope<TValue>>(fs);
+            var bytes = File.ReadAllBytes(path);
+            return _serializer.Deserialize<Envelope<TValue>>(bytes);
         }
         catch (IOException) { return null; }
-        catch (JsonException ex)
+        catch (SerializationException ex)
         {
             throw new SerializationException($"Failed to deserialize envelope at '{path}'.", ex);
         }
     }
 
-    private static async Task<Envelope<TValue>?> TryReadEnvelopeAsync(string path, CancellationToken ct)
+    private async Task<Envelope<TValue>?> TryReadEnvelopeAsync(string path, CancellationToken ct)
     {
         try
         {
-            await using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
-            return await JsonSerializer.DeserializeAsync<Envelope<TValue>>(fs, cancellationToken: ct);
+            var bytes = await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false);
+            return _serializer.Deserialize<Envelope<TValue>>(bytes);
         }
         catch (IOException) { return null; }
-        catch (JsonException ex)
+        catch (SerializationException ex)
         {
             throw new SerializationException($"Failed to deserialize envelope at '{path}'.", ex);
         }
     }
 
-    private static async Task WriteEnvelopeAsync(string path, Envelope<TValue> envelope, CancellationToken ct)
+    private async Task WriteEnvelopeAsync(string path, Envelope<TValue> envelope, CancellationToken ct)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var bytes = _serializer.Serialize(envelope);
         var tmp = path + ".tmp";
         await using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
         {
-            await JsonSerializer.SerializeAsync(fs, envelope, cancellationToken: ct);
-            await fs.FlushAsync(ct);
+            await fs.WriteAsync(bytes, ct).ConfigureAwait(false);
+            await fs.FlushAsync(ct).ConfigureAwait(false);
         }
         File.Move(tmp, path, overwrite: true);
     }
@@ -110,7 +125,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
         var path = KeyPath(key);
         var now = DateTimeOffset.UtcNow;
         using var _ = await _locker.LockAsync(hash, ct);
-        var existing = TryReadEnvelope(path);
+        var existing = await TryReadEnvelopeAsync(path, ct);
         var envelope = new Envelope<TValue>
         {
             Key = key,
@@ -129,7 +144,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
         var hash = KeyHasher.Hash(key);
         var path = KeyPath(key);
         using var _ = await _locker.LockAsync(hash, ct);
-        var e = TryReadEnvelope(path);
+        var e = await TryReadEnvelopeAsync(path, ct);
         if (e is null || e.IsExpired())
         {
             TryDeleteIgnoringTransient(path);
@@ -216,6 +231,10 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// FileSystem has no batched write path — this method just iterates and calls <see cref="SetAsync"/>
+    /// per key. It exists to satisfy the <see cref="IBulkRepository{TValue}"/> contract.
+    /// </remarks>
     public async Task SetManyAsync(
         IEnumerable<KeyValuePair<string, TValue>> items,
         SetOptions? options = null,
@@ -226,6 +245,10 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// FileSystem has no batched delete path — this method just iterates and calls <see cref="DeleteAsync"/>
+    /// per key. It exists to satisfy the <see cref="IBulkRepository{TValue}"/> contract.
+    /// </remarks>
     public async Task<int> DeleteManyAsync(IEnumerable<string> keys, CancellationToken ct = default)
     {
         var count = 0;
@@ -252,7 +275,7 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
         var hash = KeyHasher.Hash(key);
         var path = KeyPath(key);
         using var _ = await _locker.LockAsync(hash, ct);
-        var existing = TryReadEnvelope(path);
+        var existing = await TryReadEnvelopeAsync(path, ct);
         if (existing is null || existing.IsExpired()) return false;
         var updated = existing with
         {
@@ -265,26 +288,5 @@ public sealed class FileSystemRepository<TValue> : IExpiringRepository<TValue>
 
     /// <inheritdoc/>
     public Task<int> PurgeExpiredAsync(CancellationToken ct = default)
-    {
-        var count = 0;
-        foreach (var path in EnumerateFiles())
-        {
-            ct.ThrowIfCancellationRequested();
-
-            // Skip files we can't decode rather than aborting the entire purge — a single corrupt
-            // file shouldn't prevent the rest from being cleaned up.
-            Envelope<TValue>? e;
-            try { e = TryReadEnvelope(path); }
-            catch (SerializationException) { continue; }
-
-            if (e is null || !e.IsExpired()) continue;
-            try
-            {
-                File.Delete(path);
-                count++;
-            }
-            catch (IOException) { /* file vanished or is locked; try again next purge cycle */ }
-        }
-        return Task.FromResult(count);
-    }
+        => Task.FromResult(FileSystemPurge.PurgeExpired(_options, ct));
 }

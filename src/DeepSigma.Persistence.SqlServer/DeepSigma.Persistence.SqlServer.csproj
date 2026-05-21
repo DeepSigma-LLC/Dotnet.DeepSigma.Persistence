@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Microsoft SQL Server persistence backend for DeepSigma.Persistence.</Description>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>DeepSigma.Persistence.SqlServer</Title>
+    <Version>1.1.0</Version>
+    <Authors>DeepSigma LLC</Authors>
+    <Copyright />
+    <PackageProjectUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</RepositoryUrl>
+    <!-- PackageIcon + PackageReadmeFile come from root Directory.Build.props (DeepSigma.png at root,
+         README.md at root). src/Directory.Build.props handles the icon include for IsPackable projects. -->
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\*.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DeepSigma.Persistence.Abstractions\DeepSigma.Persistence.Abstraction.csproj" />
+    <ProjectReference Include="..\DeepSigma.Persistence.Core\DeepSigma.Persistence.Core.csproj" />
+    <PackageReference Include="DeepSigma.DataAccess.SqlServer" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+</Project>

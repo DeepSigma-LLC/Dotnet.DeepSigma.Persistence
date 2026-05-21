@@ -264,4 +264,56 @@ public abstract class RepositoryContractTests<TRepository>
             AbsoluteExpiration = DateTimeOffset.UtcNow.AddSeconds(10)
         });
     }
+
+    // ── Concurrency ──────────────────────────────────────────────────────
+    //
+    // Every backend documents thread-safety via a different mechanism (ConcurrentDictionary,
+    // AsyncKeyedLocker, row-level locking, WAL + busy_timeout). These tests pin the contract:
+    // concurrent operations must not throw, must not lose data, and must converge to one of
+    // the written values when racing on a single key.
+
+    /// <summary>Number of concurrent operations used by the concurrency contract tests.
+    /// Kept modest so the Postgres testcontainer suite stays under reasonable per-test latency.</summary>
+    protected virtual int ConcurrencyDegree => 20;
+
+    [Fact]
+    public async Task SetAsync_ConcurrentWritesSameKey_NoExceptionAndValueIsOneOfWritten()
+    {
+        var repo = CreateRepository();
+        var writes = Enumerable.Range(0, ConcurrencyDegree)
+            .Select(i => Task.Run(() => repo.SetAsync("k", $"v{i}")))
+            .ToArray();
+        await Task.WhenAll(writes);
+
+        var final = await repo.GetAsync("k");
+        Assert.NotNull(final);
+        Assert.Contains(final, Enumerable.Range(0, ConcurrencyDegree).Select(i => $"v{i}"));
+    }
+
+    [Fact]
+    public async Task SetAsync_ConcurrentWritesDifferentKeys_AllPersisted()
+    {
+        var repo = CreateRepository();
+        var writes = Enumerable.Range(0, ConcurrencyDegree)
+            .Select(i => Task.Run(() => repo.SetAsync($"k{i}", $"v{i}")))
+            .ToArray();
+        await Task.WhenAll(writes);
+
+        for (var i = 0; i < ConcurrencyDegree; i++)
+            Assert.Equal($"v{i}", await repo.GetAsync($"k{i}"));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ConcurrentDeleteAndGetSameKey_NoException()
+    {
+        var repo = CreateRepository();
+        await repo.SetAsync("k", "v");
+        // Race one delete against many reads. The contract only requires no exception;
+        // each Get may see the value or null depending on ordering.
+        var reads = Enumerable.Range(0, ConcurrencyDegree)
+            .Select(_ => Task.Run(() => repo.GetAsync("k")))
+            .ToArray();
+        var delete = Task.Run(() => repo.DeleteAsync("k"));
+        await Task.WhenAll(reads.Concat(new Task[] { delete }));
+    }
 }

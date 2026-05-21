@@ -197,4 +197,24 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
         Assert.Equal("v", await repo.GetAsync("live1"));
         Assert.Equal("v", await repo.GetAsync("live2"));
     }
+
+    // ── Concurrency ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SetTtlAsync_ConcurrentOnSameKey_AllReturnTrueAndValuePreserved()
+    {
+        var repo = CreateRepository();
+        await repo.SetAsync("k", "v");
+
+        // Each task races to install a different TTL on the same key. The contract: every call
+        // succeeds (the key is alive throughout), no call throws, and the underlying value is
+        // not lost — only the expiry changes.
+        var setOps = Enumerable.Range(0, ConcurrencyDegree)
+            .Select(i => Task.Run(() => repo.SetTtlAsync("k", TimeSpan.FromSeconds(60 + i))))
+            .ToArray();
+        var results = await Task.WhenAll(setOps);
+
+        Assert.All(results, Assert.True);
+        Assert.Equal("v", await repo.GetAsync("k"));
+    }
 }
