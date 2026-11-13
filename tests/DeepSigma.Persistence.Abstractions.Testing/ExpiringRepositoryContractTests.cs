@@ -22,7 +22,7 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
     /// </summary>
     protected virtual TimeSpan ExpiryBuffer => TimeSpan.FromMilliseconds(500);
 
-    private Task WaitForExpiry() => Task.Delay(ShortTtl + ExpiryBuffer);
+    private Task WaitForExpiry() => Task.Delay(ShortTtl + ExpiryBuffer, TestContext.Current.CancellationToken);
 
     // ── Expiry via SetOptions.Ttl ─────────────────────────────────────────
 
@@ -30,17 +30,17 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
     public async Task GetAsync_AfterTtlExpires_ReturnsNull()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v", new SetOptions { Ttl = ShortTtl });
+        await repo.SetAsync("k", "v", new SetOptions { Ttl = ShortTtl }, ct: TestContext.Current.CancellationToken);
         await WaitForExpiry();
-        Assert.Null(await repo.GetAsync("k"));
+        Assert.Null(await repo.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetAsync_BeforeTtlExpires_ReturnsValue()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v", new SetOptions { Ttl = TimeSpan.FromSeconds(60) });
-        Assert.Equal("v", await repo.GetAsync("k"));
+        await repo.SetAsync("k", "v", new SetOptions { Ttl = TimeSpan.FromSeconds(60) }, ct: TestContext.Current.CancellationToken);
+        Assert.Equal("v", await repo.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     // ── Expiry via SetOptions.AbsoluteExpiration ──────────────────────────
@@ -50,9 +50,9 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
     {
         var repo = CreateRepository();
         var expiry = DateTimeOffset.UtcNow.Add(ShortTtl);
-        await repo.SetAsync("k", "v", new SetOptions { AbsoluteExpiration = expiry });
+        await repo.SetAsync("k", "v", new SetOptions { AbsoluteExpiration = expiry }, ct: TestContext.Current.CancellationToken);
         await WaitForExpiry();
-        Assert.Null(await repo.GetAsync("k"));
+        Assert.Null(await repo.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     // ── Exists / List filter expired ─────────────────────────────────────
@@ -61,19 +61,19 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
     public async Task ExistsAsync_AfterTtlExpires_ReturnsFalse()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v", new SetOptions { Ttl = ShortTtl });
+        await repo.SetAsync("k", "v", new SetOptions { Ttl = ShortTtl }, ct: TestContext.Current.CancellationToken);
         await WaitForExpiry();
-        Assert.False(await repo.ExistsAsync("k"));
+        Assert.False(await repo.ExistsAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task ListKeysAsync_ExcludesExpiredKeys()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("live", "v");
-        await repo.SetAsync("expiring", "v", new SetOptions { Ttl = ShortTtl });
+        await repo.SetAsync("live", "v", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("expiring", "v", new SetOptions { Ttl = ShortTtl }, ct: TestContext.Current.CancellationToken);
         await WaitForExpiry();
-        var keys = await Collect(repo.ListKeysAsync());
+        var keys = await Collect(repo.ListKeysAsync(ct: TestContext.Current.CancellationToken), ct: TestContext.Current.CancellationToken);
         Assert.Contains("live", keys);
         Assert.DoesNotContain("expiring", keys);
     }
@@ -85,10 +85,10 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
         // remove the storage entry on this call as a side effect; that's an implementation detail.
         // What we guarantee is: deleting an already-expired key reports false.
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v", new SetOptions { Ttl = ShortTtl });
+        await repo.SetAsync("k", "v", new SetOptions { Ttl = ShortTtl }, ct: TestContext.Current.CancellationToken);
         await WaitForExpiry();
-        Assert.False(await repo.DeleteAsync("k"));
-        Assert.False(await repo.ExistsAsync("k"));   // and stays gone
+        Assert.False(await repo.DeleteAsync("k", TestContext.Current.CancellationToken));
+        Assert.False(await repo.ExistsAsync("k", TestContext.Current.CancellationToken));   // and stays gone
     }
 
     // ── GetTtl ───────────────────────────────────────────────────────────
@@ -97,15 +97,15 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
     public async Task GetTtlAsync_KeyWithNoExpiration_ReturnsNull()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v");
-        Assert.Null(await repo.GetTtlAsync("k"));
+        await repo.SetAsync("k", "v", ct: TestContext.Current.CancellationToken);
+        Assert.Null(await repo.GetTtlAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetTtlAsync_MissingKey_ReturnsNull()
     {
         var repo = CreateRepository();
-        Assert.Null(await repo.GetTtlAsync("missing"));
+        Assert.Null(await repo.GetTtlAsync("missing", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -113,8 +113,8 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
     {
         var repo = CreateRepository();
         var ttl = TimeSpan.FromSeconds(30);
-        await repo.SetAsync("k", "v", new SetOptions { Ttl = ttl });
-        var remaining = await repo.GetTtlAsync("k");
+        await repo.SetAsync("k", "v", new SetOptions { Ttl = ttl }, ct: TestContext.Current.CancellationToken);
+        var remaining = await repo.GetTtlAsync("k", TestContext.Current.CancellationToken);
         Assert.NotNull(remaining);
         Assert.True(remaining.Value > TimeSpan.Zero);
         Assert.True(remaining.Value <= ttl);
@@ -126,38 +126,38 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
     public async Task SetTtlAsync_MissingKey_ReturnsFalse()
     {
         var repo = CreateRepository();
-        Assert.False(await repo.SetTtlAsync("missing", TimeSpan.FromSeconds(10)));
+        Assert.False(await repo.SetTtlAsync("missing", TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task SetTtlAsync_ExistingKey_AppliesExpiry()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v");
-        Assert.True(await repo.SetTtlAsync("k", ShortTtl));
+        await repo.SetAsync("k", "v", ct: TestContext.Current.CancellationToken);
+        Assert.True(await repo.SetTtlAsync("k", ShortTtl, TestContext.Current.CancellationToken));
         await WaitForExpiry();
-        Assert.Null(await repo.GetAsync("k"));
+        Assert.Null(await repo.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task SetTtlAsync_NullOnKeyWithTtl_RemovesExpiry()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v", new SetOptions { Ttl = ShortTtl });
-        Assert.True(await repo.SetTtlAsync("k", null));
+        await repo.SetAsync("k", "v", new SetOptions { Ttl = ShortTtl }, ct: TestContext.Current.CancellationToken);
+        Assert.True(await repo.SetTtlAsync("k", null, TestContext.Current.CancellationToken));
         await WaitForExpiry();
         // TTL was removed; key must still be alive
-        Assert.Equal("v", await repo.GetAsync("k"));
+        Assert.Equal("v", await repo.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task SetTtlAsync_NullOnKeyWithNoTtl_ReturnsTrueAndKeyLives()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v");
-        Assert.True(await repo.SetTtlAsync("k", null));
-        Assert.Equal("v", await repo.GetAsync("k"));
-        Assert.Null(await repo.GetTtlAsync("k"));
+        await repo.SetAsync("k", "v", ct: TestContext.Current.CancellationToken);
+        Assert.True(await repo.SetTtlAsync("k", null, TestContext.Current.CancellationToken));
+        Assert.Equal("v", await repo.GetAsync("k", TestContext.Current.CancellationToken));
+        Assert.Null(await repo.GetTtlAsync("k", TestContext.Current.CancellationToken));
     }
 
     // ── PurgeExpired ─────────────────────────────────────────────────────
@@ -166,36 +166,36 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
     public async Task PurgeExpiredAsync_NoExpiredKeys_ReturnsZero()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v");
-        Assert.Equal(0, await repo.PurgeExpiredAsync());
+        await repo.SetAsync("k", "v", ct: TestContext.Current.CancellationToken);
+        Assert.Equal(0, await repo.PurgeExpiredAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task PurgeExpiredAsync_RemovesExpiredKeysAndReturnsCount()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("live", "v");
-        await repo.SetAsync("dead1", "v", new SetOptions { Ttl = ShortTtl });
-        await repo.SetAsync("dead2", "v", new SetOptions { Ttl = ShortTtl });
+        await repo.SetAsync("live", "v", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("dead1", "v", new SetOptions { Ttl = ShortTtl }, ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("dead2", "v", new SetOptions { Ttl = ShortTtl }, ct: TestContext.Current.CancellationToken);
         await WaitForExpiry();
-        var purged = await repo.PurgeExpiredAsync();
+        var purged = await repo.PurgeExpiredAsync(TestContext.Current.CancellationToken);
         Assert.Equal(2, purged);
         // Verify they are gone
-        Assert.Null(await repo.GetAsync("dead1"));
-        Assert.Null(await repo.GetAsync("dead2"));
+        Assert.Null(await repo.GetAsync("dead1", TestContext.Current.CancellationToken));
+        Assert.Null(await repo.GetAsync("dead2", TestContext.Current.CancellationToken));
         // Verify live key is unaffected
-        Assert.Equal("v", await repo.GetAsync("live"));
+        Assert.Equal("v", await repo.GetAsync("live", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task PurgeExpiredAsync_DoesNotRemoveLiveKeys()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("live1", "v");
-        await repo.SetAsync("live2", "v", new SetOptions { Ttl = TimeSpan.FromSeconds(60) });
-        await repo.PurgeExpiredAsync();
-        Assert.Equal("v", await repo.GetAsync("live1"));
-        Assert.Equal("v", await repo.GetAsync("live2"));
+        await repo.SetAsync("live1", "v", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("live2", "v", new SetOptions { Ttl = TimeSpan.FromSeconds(60) }, ct: TestContext.Current.CancellationToken);
+        await repo.PurgeExpiredAsync(TestContext.Current.CancellationToken);
+        Assert.Equal("v", await repo.GetAsync("live1", TestContext.Current.CancellationToken));
+        Assert.Equal("v", await repo.GetAsync("live2", TestContext.Current.CancellationToken));
     }
 
     // ── Concurrency ──────────────────────────────────────────────────────
@@ -204,17 +204,17 @@ public abstract class ExpiringRepositoryContractTests<TRepository>
     public async Task SetTtlAsync_ConcurrentOnSameKey_AllReturnTrueAndValuePreserved()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v");
+        await repo.SetAsync("k", "v", ct: TestContext.Current.CancellationToken);
 
         // Each task races to install a different TTL on the same key. The contract: every call
         // succeeds (the key is alive throughout), no call throws, and the underlying value is
         // not lost — only the expiry changes.
         var setOps = Enumerable.Range(0, ConcurrencyDegree)
-            .Select(i => Task.Run(() => repo.SetTtlAsync("k", TimeSpan.FromSeconds(60 + i))))
+            .Select(i => Task.Run(() => repo.SetTtlAsync("k", TimeSpan.FromSeconds(60 + i), TestContext.Current.CancellationToken)))
             .ToArray();
         var results = await Task.WhenAll(setOps);
 
         Assert.All(results, Assert.True);
-        Assert.Equal("v", await repo.GetAsync("k"));
+        Assert.Equal("v", await repo.GetAsync("k", TestContext.Current.CancellationToken));
     }
 }

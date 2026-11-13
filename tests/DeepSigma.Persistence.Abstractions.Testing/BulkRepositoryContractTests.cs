@@ -16,7 +16,7 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task GetManyAsync_EmptyInput_ReturnsEmptyDictionary()
     {
         var repo = CreateRepository();
-        var result = await repo.GetManyAsync([]);
+        var result = await repo.GetManyAsync([], TestContext.Current.CancellationToken);
         Assert.Empty(result);
     }
 
@@ -24,9 +24,9 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task GetManyAsync_AllPresent_ReturnsAll()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("a", "1");
-        await repo.SetAsync("b", "2");
-        var result = await repo.GetManyAsync(["a", "b"]);
+        await repo.SetAsync("a", "1", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("b", "2", ct: TestContext.Current.CancellationToken);
+        var result = await repo.GetManyAsync(["a", "b"], TestContext.Current.CancellationToken);
         Assert.Equal(2, result.Count);
         Assert.Equal("1", result["a"]);
         Assert.Equal("2", result["b"]);
@@ -36,8 +36,8 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task GetManyAsync_SomePresent_ReturnsOnlyFound()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("present", "v");
-        var result = await repo.GetManyAsync(["present", "missing"]);
+        await repo.SetAsync("present", "v", ct: TestContext.Current.CancellationToken);
+        var result = await repo.GetManyAsync(["present", "missing"], TestContext.Current.CancellationToken);
         Assert.Single(result);
         Assert.True(result.ContainsKey("present"));
         Assert.False(result.ContainsKey("missing"));
@@ -47,7 +47,7 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task GetManyAsync_NonePresent_ReturnsEmptyDictionary()
     {
         var repo = CreateRepository();
-        var result = await repo.GetManyAsync(["x", "y", "z"]);
+        var result = await repo.GetManyAsync(["x", "y", "z"], TestContext.Current.CancellationToken);
         Assert.Empty(result);
     }
 
@@ -55,8 +55,8 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task GetManyAsync_NeverContainsNullValues()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("a", "v");
-        var result = await repo.GetManyAsync(["a", "missing"]);
+        await repo.SetAsync("a", "v", ct: TestContext.Current.CancellationToken);
+        var result = await repo.GetManyAsync(["a", "missing"], TestContext.Current.CancellationToken);
         Assert.All(result.Values, v => Assert.NotNull(v));
     }
 
@@ -66,7 +66,7 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task SetManyAsync_EmptyInput_Succeeds()
     {
         var repo = CreateRepository();
-        await repo.SetManyAsync([]); // must not throw
+        await repo.SetManyAsync([], ct: TestContext.Current.CancellationToken); // must not throw
     }
 
     [Fact]
@@ -79,8 +79,8 @@ public abstract class BulkRepositoryContractTests<TRepository>
             ["two"] = "2",
             ["three"] = "3"
         };
-        await repo.SetManyAsync(items);
-        var result = await repo.GetManyAsync(["one", "two", "three"]);
+        await repo.SetManyAsync(items, ct: TestContext.Current.CancellationToken);
+        var result = await repo.GetManyAsync(["one", "two", "three"], TestContext.Current.CancellationToken);
         Assert.Equal(3, result.Count);
         Assert.Equal("1", result["one"]);
         Assert.Equal("2", result["two"]);
@@ -91,9 +91,9 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task SetManyAsync_OverwritesExistingKeys()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "old");
-        await repo.SetManyAsync([new KeyValuePair<string, string>("k", "new")]);
-        Assert.Equal("new", await repo.GetAsync("k"));
+        await repo.SetAsync("k", "old", ct: TestContext.Current.CancellationToken);
+        await repo.SetManyAsync([new KeyValuePair<string, string>("k", "new")], ct: TestContext.Current.CancellationToken);
+        Assert.Equal("new", await repo.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     // ── DeleteMany ───────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task DeleteManyAsync_EmptyInput_ReturnsZero()
     {
         var repo = CreateRepository();
-        var count = await repo.DeleteManyAsync([]);
+        var count = await repo.DeleteManyAsync([], TestContext.Current.CancellationToken);
         Assert.Equal(0, count);
     }
 
@@ -110,9 +110,9 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task DeleteManyAsync_AllPresent_ReturnsCount()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("a", "1");
-        await repo.SetAsync("b", "2");
-        var count = await repo.DeleteManyAsync(["a", "b"]);
+        await repo.SetAsync("a", "1", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("b", "2", ct: TestContext.Current.CancellationToken);
+        var count = await repo.DeleteManyAsync(["a", "b"], TestContext.Current.CancellationToken);
         Assert.Equal(2, count);
     }
 
@@ -120,8 +120,8 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task DeleteManyAsync_SomePresent_ReturnsCountActuallyDeleted()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("present", "v");
-        var count = await repo.DeleteManyAsync(["present", "missing"]);
+        await repo.SetAsync("present", "v", ct: TestContext.Current.CancellationToken);
+        var count = await repo.DeleteManyAsync(["present", "missing"], TestContext.Current.CancellationToken);
         Assert.Equal(1, count);
     }
 
@@ -129,7 +129,7 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task DeleteManyAsync_NonePresent_ReturnsZero()
     {
         var repo = CreateRepository();
-        var count = await repo.DeleteManyAsync(["x", "y"]);
+        var count = await repo.DeleteManyAsync(["x", "y"], TestContext.Current.CancellationToken);
         Assert.Equal(0, count);
     }
 
@@ -137,12 +137,12 @@ public abstract class BulkRepositoryContractTests<TRepository>
     public async Task DeleteManyAsync_RemovesKeys()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("a", "1");
-        await repo.SetAsync("b", "2");
-        await repo.SetAsync("c", "3");
-        await repo.DeleteManyAsync(["a", "b"]);
-        Assert.Null(await repo.GetAsync("a"));
-        Assert.Null(await repo.GetAsync("b"));
-        Assert.Equal("3", await repo.GetAsync("c"));
+        await repo.SetAsync("a", "1", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("b", "2", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("c", "3", ct: TestContext.Current.CancellationToken);
+        await repo.DeleteManyAsync(["a", "b"], TestContext.Current.CancellationToken);
+        Assert.Null(await repo.GetAsync("a", TestContext.Current.CancellationToken));
+        Assert.Null(await repo.GetAsync("b", TestContext.Current.CancellationToken));
+        Assert.Equal("3", await repo.GetAsync("c", TestContext.Current.CancellationToken));
     }
 }

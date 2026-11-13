@@ -4,9 +4,12 @@
     <!-- This project ships abstract base classes only; it has no runnable tests of its own. -->
     <IsTestProject>false</IsTestProject>
     <Description>Shared contract test base classes for DeepSigma.Persistence backends.</Description>
+    <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\DeepSigma.Persistence.Abstractions\DeepSigma.Persistence.Abstraction.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
     <!-- This project ships abstract base classes only — use the extensibility surface, not the
          executable test framework. xunit.v3 (the meta-package) requires an Exe OutputType which
          would be wrong here. xunit.v3.assert brings in the Assert class. -->

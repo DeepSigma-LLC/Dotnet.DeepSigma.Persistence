@@ -17,7 +17,7 @@ public sealed class PostgresRepositoryTests
 
     public async ValueTask InitializeAsync()
     {
-        _container = new PostgreSqlBuilder().Build();
+        _container = new PostgreSqlBuilder("postgres:15.1").Build();
         await _container.StartAsync();
     }
 

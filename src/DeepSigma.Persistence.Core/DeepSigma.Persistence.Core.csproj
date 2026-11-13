@@ -11,13 +11,12 @@
     <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence.git</RepositoryUrl>
     <PackageIcon>DeepSigma.png</PackageIcon>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
 
 
 	  <ItemGroup>
     <ProjectReference Include="..\DeepSigma.Persistence.Abstractions\DeepSigma.Persistence.Abstraction.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
   </ItemGroup>
 
 

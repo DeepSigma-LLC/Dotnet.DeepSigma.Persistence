@@ -28,24 +28,24 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task GetAsync_MissingKey_ReturnsNull()
     {
         var repo = CreateRepository();
-        Assert.Null(await repo.GetAsync("missing-key"));
+        Assert.Null(await repo.GetAsync("missing-key", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetAsync_AfterSet_ReturnsValue()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "hello");
-        Assert.Equal("hello", await repo.GetAsync("k"));
+        await repo.SetAsync("k", "hello", ct: TestContext.Current.CancellationToken);
+        Assert.Equal("hello", await repo.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetAsync_AfterOverwrite_ReturnsNewValue()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "first");
-        await repo.SetAsync("k", "second");
-        Assert.Equal("second", await repo.GetAsync("k"));
+        await repo.SetAsync("k", "first", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("k", "second", ct: TestContext.Current.CancellationToken);
+        Assert.Equal("second", await repo.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     // ── Delete ───────────────────────────────────────────────────────────
@@ -54,25 +54,25 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task DeleteAsync_ExistingKey_ReturnsTrue()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v");
-        Assert.True(await repo.DeleteAsync("k"));
+        await repo.SetAsync("k", "v", ct: TestContext.Current.CancellationToken);
+        Assert.True(await repo.DeleteAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task DeleteAsync_ExistingKey_RemovesKey()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v");
-        await repo.DeleteAsync("k");
-        Assert.Null(await repo.GetAsync("k"));
-        Assert.False(await repo.ExistsAsync("k"));
+        await repo.SetAsync("k", "v", ct: TestContext.Current.CancellationToken);
+        await repo.DeleteAsync("k", TestContext.Current.CancellationToken);
+        Assert.Null(await repo.GetAsync("k", TestContext.Current.CancellationToken));
+        Assert.False(await repo.ExistsAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task DeleteAsync_MissingKey_ReturnsFalse()
     {
         var repo = CreateRepository();
-        Assert.False(await repo.DeleteAsync("missing-key"));
+        Assert.False(await repo.DeleteAsync("missing-key", TestContext.Current.CancellationToken));
     }
 
     // ── Exists ───────────────────────────────────────────────────────────
@@ -81,24 +81,24 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task ExistsAsync_AfterSet_ReturnsTrue()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v");
-        Assert.True(await repo.ExistsAsync("k"));
+        await repo.SetAsync("k", "v", ct: TestContext.Current.CancellationToken);
+        Assert.True(await repo.ExistsAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task ExistsAsync_MissingKey_ReturnsFalse()
     {
         var repo = CreateRepository();
-        Assert.False(await repo.ExistsAsync("missing-key"));
+        Assert.False(await repo.ExistsAsync("missing-key", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task ExistsAsync_AfterDelete_ReturnsFalse()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v");
-        await repo.DeleteAsync("k");
-        Assert.False(await repo.ExistsAsync("k"));
+        await repo.SetAsync("k", "v", ct: TestContext.Current.CancellationToken);
+        await repo.DeleteAsync("k", TestContext.Current.CancellationToken);
+        Assert.False(await repo.ExistsAsync("k", TestContext.Current.CancellationToken));
     }
 
     // ── ListKeys ─────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task ListKeysAsync_EmptyStore_ReturnsEmpty()
     {
         var repo = CreateRepository();
-        var keys = await Collect(repo.ListKeysAsync());
+        var keys = await Collect(repo.ListKeysAsync(ct: TestContext.Current.CancellationToken), ct: TestContext.Current.CancellationToken);
         Assert.Empty(keys);
     }
 
@@ -115,10 +115,10 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task ListKeysAsync_MultipleKeys_ReturnsAll()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("a", "1");
-        await repo.SetAsync("b", "2");
-        await repo.SetAsync("c", "3");
-        var keys = await Collect(repo.ListKeysAsync());
+        await repo.SetAsync("a", "1", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("b", "2", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("c", "3", ct: TestContext.Current.CancellationToken);
+        var keys = await Collect(repo.ListKeysAsync(ct: TestContext.Current.CancellationToken), ct: TestContext.Current.CancellationToken);
         Assert.Equal(3, keys.Count);
         Assert.Contains("a", keys);
         Assert.Contains("b", keys);
@@ -129,10 +129,10 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task ListKeysAsync_WithPrefix_ReturnsOnlyMatching()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("user:1", "a");
-        await repo.SetAsync("user:2", "b");
-        await repo.SetAsync("config:x", "c");
-        var keys = await Collect(repo.ListKeysAsync("user:"));
+        await repo.SetAsync("user:1", "a", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("user:2", "b", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("config:x", "c", ct: TestContext.Current.CancellationToken);
+        var keys = await Collect(repo.ListKeysAsync("user:", ct: TestContext.Current.CancellationToken), ct: TestContext.Current.CancellationToken);
         Assert.Equal(2, keys.Count);
         Assert.All(keys, k => Assert.StartsWith("user:", k));
     }
@@ -141,9 +141,9 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task ListKeysAsync_PrefixExactMatch_IncludesKey()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("foo", "v");
-        await repo.SetAsync("foobar", "v");
-        var keys = await Collect(repo.ListKeysAsync("foo"));
+        await repo.SetAsync("foo", "v", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("foobar", "v", ct: TestContext.Current.CancellationToken);
+        var keys = await Collect(repo.ListKeysAsync("foo", ct: TestContext.Current.CancellationToken), ct: TestContext.Current.CancellationToken);
         Assert.Contains("foo", keys);
         Assert.Contains("foobar", keys);
     }
@@ -152,8 +152,8 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task ListKeysAsync_PrefixNoMatch_ReturnsEmpty()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("a", "1");
-        var keys = await Collect(repo.ListKeysAsync("z:"));
+        await repo.SetAsync("a", "1", ct: TestContext.Current.CancellationToken);
+        var keys = await Collect(repo.ListKeysAsync("z:", ct: TestContext.Current.CancellationToken), ct: TestContext.Current.CancellationToken);
         Assert.Empty(keys);
     }
 
@@ -161,10 +161,10 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task ListKeysAsync_DoesNotIncludeDeletedKeys()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("keep", "v");
-        await repo.SetAsync("gone", "v");
-        await repo.DeleteAsync("gone");
-        var keys = await Collect(repo.ListKeysAsync());
+        await repo.SetAsync("keep", "v", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("gone", "v", ct: TestContext.Current.CancellationToken);
+        await repo.DeleteAsync("gone", TestContext.Current.CancellationToken);
+        var keys = await Collect(repo.ListKeysAsync(ct: TestContext.Current.CancellationToken), ct: TestContext.Current.CancellationToken);
         Assert.Contains("keep", keys);
         Assert.DoesNotContain("gone", keys);
     }
@@ -175,9 +175,9 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task ListAsync_MultipleKeys_ReturnsAllPairs()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("x", "val-x");
-        await repo.SetAsync("y", "val-y");
-        var pairs = await Collect(repo.ListAsync());
+        await repo.SetAsync("x", "val-x", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("y", "val-y", ct: TestContext.Current.CancellationToken);
+        var pairs = await Collect(repo.ListAsync(ct: TestContext.Current.CancellationToken), ct: TestContext.Current.CancellationToken);
         Assert.Equal(2, pairs.Count);
         Assert.Contains(pairs, p => p.Key == "x" && p.Value == "val-x");
         Assert.Contains(pairs, p => p.Key == "y" && p.Value == "val-y");
@@ -187,10 +187,10 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task ListAsync_WithPrefix_ReturnsOnlyMatching()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("ns:a", "1");
-        await repo.SetAsync("ns:b", "2");
-        await repo.SetAsync("other", "3");
-        var pairs = await Collect(repo.ListAsync("ns:"));
+        await repo.SetAsync("ns:a", "1", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("ns:b", "2", ct: TestContext.Current.CancellationToken);
+        await repo.SetAsync("other", "3", ct: TestContext.Current.CancellationToken);
+        var pairs = await Collect(repo.ListAsync("ns:", ct: TestContext.Current.CancellationToken), ct: TestContext.Current.CancellationToken);
         Assert.Equal(2, pairs.Count);
         Assert.All(pairs, p => Assert.StartsWith("ns:", p.Key));
     }
@@ -201,21 +201,21 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task SetAsync_NullKey_Throws()
     {
         var repo = CreateRepository();
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => repo.SetAsync(null!, "v"));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => repo.SetAsync(null!, "v", ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task SetAsync_EmptyKey_Throws()
     {
         var repo = CreateRepository();
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => repo.SetAsync("", "v"));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => repo.SetAsync("", "v", ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task SetAsync_NullByteKey_Throws()
     {
         var repo = CreateRepository();
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => repo.SetAsync("key\0bad", "v"));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => repo.SetAsync("key\0bad", "v", ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -223,8 +223,8 @@ public abstract class RepositoryContractTests<TRepository>
     {
         var repo = CreateRepository();
         var key = new string('k', MaxKeyLength);
-        await repo.SetAsync(key, "v"); // must not throw
-        Assert.Equal("v", await repo.GetAsync(key));
+        await repo.SetAsync(key, "v", ct: TestContext.Current.CancellationToken); // must not throw
+        Assert.Equal("v", await repo.GetAsync(key, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -232,7 +232,7 @@ public abstract class RepositoryContractTests<TRepository>
     {
         var repo = CreateRepository();
         var key = new string('k', MaxKeyLength + 1);
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => repo.SetAsync(key, "v"));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => repo.SetAsync(key, "v", ct: TestContext.Current.CancellationToken));
     }
 
     // ── Special characters in keys ────────────────────────────────────────
@@ -248,9 +248,9 @@ public abstract class RepositoryContractTests<TRepository>
     public async Task SetAsync_SpecialCharacterKey_RoundTrips(string key)
     {
         var repo = CreateRepository();
-        await repo.SetAsync(key, "value");
-        Assert.Equal("value", await repo.GetAsync(key));
-        Assert.True(await repo.ExistsAsync(key));
+        await repo.SetAsync(key, "value", ct: TestContext.Current.CancellationToken);
+        Assert.Equal("value", await repo.GetAsync(key, TestContext.Current.CancellationToken));
+        Assert.True(await repo.ExistsAsync(key, TestContext.Current.CancellationToken));
     }
 
     // ── SetOptions validation (abstraction-level, not backend-level) ──────
@@ -281,11 +281,11 @@ public abstract class RepositoryContractTests<TRepository>
     {
         var repo = CreateRepository();
         var writes = Enumerable.Range(0, ConcurrencyDegree)
-            .Select(i => Task.Run(() => repo.SetAsync("k", $"v{i}")))
+            .Select(i => Task.Run(() => repo.SetAsync("k", $"v{i}", ct: TestContext.Current.CancellationToken)))
             .ToArray();
         await Task.WhenAll(writes);
 
-        var final = await repo.GetAsync("k");
+        var final = await repo.GetAsync("k", TestContext.Current.CancellationToken);
         Assert.NotNull(final);
         Assert.Contains(final, Enumerable.Range(0, ConcurrencyDegree).Select(i => $"v{i}"));
     }
@@ -295,25 +295,25 @@ public abstract class RepositoryContractTests<TRepository>
     {
         var repo = CreateRepository();
         var writes = Enumerable.Range(0, ConcurrencyDegree)
-            .Select(i => Task.Run(() => repo.SetAsync($"k{i}", $"v{i}")))
+            .Select(i => Task.Run(() => repo.SetAsync($"k{i}", $"v{i}", ct: TestContext.Current.CancellationToken)))
             .ToArray();
         await Task.WhenAll(writes);
 
         for (var i = 0; i < ConcurrencyDegree; i++)
-            Assert.Equal($"v{i}", await repo.GetAsync($"k{i}"));
+            Assert.Equal($"v{i}", await repo.GetAsync($"k{i}", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task DeleteAsync_ConcurrentDeleteAndGetSameKey_NoException()
     {
         var repo = CreateRepository();
-        await repo.SetAsync("k", "v");
+        await repo.SetAsync("k", "v", ct: TestContext.Current.CancellationToken);
         // Race one delete against many reads. The contract only requires no exception;
         // each Get may see the value or null depending on ordering.
         var reads = Enumerable.Range(0, ConcurrencyDegree)
-            .Select(_ => Task.Run(() => repo.GetAsync("k")))
+            .Select(_ => Task.Run(() => repo.GetAsync("k", TestContext.Current.CancellationToken)))
             .ToArray();
-        var delete = Task.Run(() => repo.DeleteAsync("k"));
+        var delete = Task.Run(() => repo.DeleteAsync("k", TestContext.Current.CancellationToken));
         await Task.WhenAll(reads.Concat(new Task[] { delete }));
     }
 }

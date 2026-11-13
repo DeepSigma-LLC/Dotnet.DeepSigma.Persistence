@@ -12,6 +12,7 @@
     <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</RepositoryUrl>
     <PackageIcon>DeepSigma.png</PackageIcon>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Migrations\*.sql" />
@@ -20,7 +21,5 @@
     <ProjectReference Include="..\DeepSigma.Persistence.Abstractions\DeepSigma.Persistence.Abstraction.csproj" />
     <ProjectReference Include="..\DeepSigma.Persistence.Core\DeepSigma.Persistence.Core.csproj" />
     <PackageReference Include="DeepSigma.DataAccess.Postgres" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>
 </Project>

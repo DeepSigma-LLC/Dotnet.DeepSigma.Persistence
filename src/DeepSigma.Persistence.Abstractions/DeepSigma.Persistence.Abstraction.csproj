@@ -11,5 +11,6 @@
     <RepositoryUrl>https://github.com/DeepSigma-LLC/Dotnet.DeepSigma.Persistence</RepositoryUrl>
     <PackageIcon>DeepSigma.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
 </Project>

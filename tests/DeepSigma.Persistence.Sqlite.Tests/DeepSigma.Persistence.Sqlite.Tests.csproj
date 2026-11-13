@@ -1,4 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\DeepSigma.Persistence.Sqlite\DeepSigma.Persistence.Sqlite.csproj" />
     <ProjectReference Include="..\DeepSigma.Persistence.Abstractions.Testing\DeepSigma.Persistence.Abstraction.Testing.csproj" />
